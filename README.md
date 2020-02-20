@@ -59,8 +59,21 @@ unfortunately this setup must be done manually because by default the system doe
 
 #Playbooks
 before starting you need to setup group_vars/all variables in order to setup SIEM information and specific site location
-## assets-scanner
+## assets-scanner.yml
 providing informations about network to scan and some standard service credentials, performs a network scan and retrive hostnames and ips and site location based in first place on PTR record. if lookup fails script logs in to the machine and based on OS type retrive the hostname.
 This scanner uses a cache to speed up host already scanned. there is an option you can use in playbooks runs in order to handle cache:
 * -e cache_purge_type="undiscovered" : clears all previously undiscovered hosts marked as unreachable, for a specific subnet
 * -e cache_purge_type="all" : clear all cached data for a specific subnet
+the result of the run is a csv file that you can use in Alienvault in order to import discovered assets. file is downloaded in ~/Downloads/Assets.csv
+
+## hids-full-deploy.yml
+Allow you to automatically compile ossec hids agent on a remote machine, collect information about deployed host, add the relative remote agent to SIEM, retrive the agent key and deploy SIEM's retrived key to remote host, in order to connect host to alienvault.
+This playbook is made upon 2 playbooks:
+* hids-deploy.yml : compile HIDS to remote host, at the moment of writing ossec-hids latest version compatible with OpenBSD is 3.4.0 while for debian and freebsd tested working version is 3.1.0. to update versions you just need to change the following conditional in ../../roles/hids-deploy/main.yml
+```
+ids_version: "{{ '3.4.0' if (ansible_system == 'OpenBSD') or ( ansible_distribution == 'Debian' and ansible_distribution_major_version|int >= 9) else '3.1.0' }}"
+```
+* hids-remote-agent-deploy.yml : Creates a new agent in Alienvault, retrive key and deploy agent key to remote machine
+
+## hids-massive-restart.yml
+Restart all ossec agents on wich ansible is running on 
