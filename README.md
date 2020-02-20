@@ -1,4 +1,4 @@
-#Alienvault-automation
+# Alienvault-ansible-automation
 
 Offering a suite of playbook in order to automate ossec-hids deployment in a distribued architecture allowing host to connect to alienvault sensors via port udp 1514.
 Before starting the automatic deploy you need to tune your alienvault USM appliance setup.
