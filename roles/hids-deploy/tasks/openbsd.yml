@@ -1,0 +1,5 @@
+---
+- name: "Install OpenBSD base packages"
+  openbsd_pkg:
+    name: ['gmake' , 'unzip--', 'gtar--']
+    state: present

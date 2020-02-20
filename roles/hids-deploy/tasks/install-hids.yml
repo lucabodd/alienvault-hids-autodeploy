@@ -1,0 +1,24 @@
+---
+    - name: "Downloading Ossec HIDS"
+      unarchive:
+        src: "https://github.com/ossec/ossec-hids/archive/{{ hids_version }}.tar.gz"
+        dest: /tmp/
+        remote_src: yes
+
+    - name: "removing previous installation"
+      file:
+        path: /var/ossec/
+        state: absent
+
+    - name: "copying edited installed script with local machines variables"
+      template:
+        src: ../templates/custom-install.sh
+        dest: "/tmp/ossec-hids-{{ hids_version }}/custom-install.sh"
+        owner: root
+        mode: 0774
+
+    - name: "deploying hids"
+      shell: "/tmp/ossec-hids-{{ hids_version }}/custom-install.sh"
+
+    - name: "stopping ossec hids"
+      command: /var/ossec/bin/ossec-control stop

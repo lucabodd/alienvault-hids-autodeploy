@@ -1,0 +1,17 @@
+---
+#    - name: Collecting assets information, if script is building caches this may take a while...
+#      command: 'python {{ role_path }}/files/assets_generator.py "{{vpn_subnet}}" "{{ansible_hostname}}" "{{ role_path }}/files"'
+#      delegate_to: localhost
+#      become: false
+
+    #Package installation
+    - import_tasks: debian.yml
+      when: ansible_distribution == "Debian"
+
+    - import_tasks: openbsd.yml
+      when: ansible_system == "OpenBSD"
+
+    #HIDS installation
+    - import_tasks: install-hids.yml
+      vars:
+        hids_version: "{{ '3.4.0' if (ansible_system == 'OpenBSD') or ( ansible_distribution == 'Debian' and ansible_distribution_major_version|int >= 9) else '3.1.0' }}"

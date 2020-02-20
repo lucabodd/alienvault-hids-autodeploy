@@ -1,0 +1,22 @@
+################################################################################
+#
+# Questo playbook è da lanciare subito dopo l'installazione di un server.
+#
+# Richiama il role "hids-deploy", che provvedere alla compilazione degli Host-based
+# intrusion detection system
+# di default l'agent viene lasciato spento dal playbook, il quale potrà essere avviato solo
+# dopo aver importato la chiave generata da alienvault
+# Lanciare con:
+#
+#     ansible-playbook -i ../dc/fub_fuc/inventory hids-deploy.yml -vvv
+#
+# Il playbook genera errore se esegue il deploy su un host non mappato in vpn, una volta mappato l'host
+# occorre eliminare la cache dello script e ri eseguire il playbook
+# l'host in vpn dovrà essere raggiungibile via ssh
+################################################################################
+
+---
+- hosts: all
+  become: "{{ 'no' if inventory_hostname | regex_search('(vrt)') else 'yes' }}"
+  roles:
+          - ../../roles/hids-deploy

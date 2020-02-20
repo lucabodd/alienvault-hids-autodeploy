@@ -1,0 +1,80 @@
+#Bulk load file: /dev/shm/Agents.list
+#Opening: [/dev/shm/Agents.list]
+#Agent information:
+#   ID:110
+#   Name:hqit-analytics-02
+#   IP Address:10.60.1.23
+#
+#Agent added.
+#Agent information:
+#   ID:111
+#   Name:hqit-test-01
+#   IP Address:10.60.1.24
+#
+#Agent added.
+---
+- hosts: debian,openbsd,!siem
+  become: true
+  tasks:
+  - name: "Scanning network to check host with sleepy agents"
+    stat:
+      path: /var/ossec/bin/ossec-control
+    register: ossec_stat
+
+  - name: "Checking ossec agent status"
+    shell: "echo '{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }},{{ ansible_hostname }}' >> ../../roles/hids-remote-agent-deploy/files/Agents.list"
+    delegate_to: localhost
+    become: false
+    when: ossec_stat.stat.exists|bool == True
+
+- hosts: siem
+  tasks:
+  - name: "shipping generated Agents.list file to alienvault"
+    copy:
+      src: ../../roles/hids-remote-agent-deploy/files/Agents.list
+      dest: /dev/shm/Agents.list
+
+  - name: "Deleting local Agents.list file"
+    file:
+      state: absent
+      path: ../../roles/hids-remote-agent-deploy/files/Agents.list
+    delegate_to: localhost
+
+  - name: "Bulk importing agents using the generated Agents.list files"
+    shell: "/var/ossec/bin/manage_agents -f /dev/shm/Agents.list | grep ID | awk -F ':' '{ print $2 }'"
+    register: agents_ids
+
+  - name: "Retriving agent encrypted keys"
+    command: "/var/ossec/bin/manage_agents -e {{ item }}"
+    with_items: "{{ agents_ids.stdout_lines }}"
+    register: agents_keys
+
+  - name: "decoding agent keys in order to generate dynamic inventory"
+    add_host:
+      name: "{{ (item.stdout_lines[2] | b64decode).split(' ')[1] }}"
+      hids_key: "{{ item.stdout_lines[2] }}"
+      group: undergoing_hids_remote_agent_deployment
+    with_items: "{{ agents_keys.results }}"
+  - debug:
+      msg: "{{ (item.stdout_lines[2] | b64decode).split(' ')[1] }}"
+    with_items: "{{ agents_keys.results }}"
+
+
+- hosts: undergoing_hids_remote_agent_deployment
+  become: true
+  tasks:
+  - name: "Adding key to host agent"
+    shell: "echo \"{{ hids_key | b64decode }}\" > /var/ossec/etc/client.keys"
+
+  - name: "restarting ossec hids"
+    command: /var/ossec/bin/ossec-control restart
+
+- hosts: siem
+  tasks:
+  - name: "restarting hids on Alienvault"
+    shell: "/var/ossec/bin/ossec-control restart"
+
+  - name: "Cleaning up tempfs"
+    file:
+      state: absent
+      path: /dev/shm/Assets.csv
