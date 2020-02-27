@@ -1,7 +1,7 @@
 package main
 
 import (
-	//"flag"
+	"flag"
 	//"os"
 	"fmt"
     "time"
@@ -17,23 +17,22 @@ import (
 func main() {
 	subnet := flag.String("subnet-cidr", "", "Specify subnet to be scanned")
     ports := flag.String("p","22","Specify port to be scanned")
-    //flag.Parse()
+    flag.Parse()
 
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
     defer cancel()
 
-    // Equivalent to `/usr/local/bin/nmap -p 80,443,843 google.com facebook.com youtube.com`,
-    // with a 5 minute timeout.
+    // setup nmap scanner
     scanner, err := nmap.NewScanner(
-        nmap.WithTargets(subnet),
-        nmap.WithPorts(ports),
+        nmap.WithTargets(*subnet),
+        nmap.WithPorts(*ports),
         nmap.WithContext(ctx),
     )
     check(err)
 
     result, warnings, err := scanner.Run()
     check(err)
-    
+
     if warnings != nil {
         fmt.Printf("Warnings: \n %v", warnings)
     }
@@ -47,7 +46,7 @@ func main() {
         fmt.Printf("Host %q:\n", host.Addresses[0])
 
         for _, port := range host.Ports {
-            fmt.Printf("\tPort %d/%s %s %s\n", port.ID, port.Protocol, port.State, port.Service.Name)
+            fmt.Printf("\tPort %+v\n", port)
         }
     }
 
