@@ -6,6 +6,7 @@ import (
 	"fmt"
     "time"
     "context"
+    "net"
 	//ansibler "github.com/apenella/go-ansible"
 	//"bytes"
 	//"strings"
@@ -44,6 +45,8 @@ func main() {
         }
 
         fmt.Printf("Host %q:\n", host.Addresses[0])
+        ptr, _ := net.LookupAddr(fmt.Sprintf("%q",host.Addresses[0]))
+        fmt.Printf("%+v", ptr)
 
         for _, port := range host.Ports {
             fmt.Printf("\tPort %+v\n", port)
