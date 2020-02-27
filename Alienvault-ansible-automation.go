@@ -45,8 +45,8 @@ func main() {
         }
 
         fmt.Printf("Host %q:\n", host.Addresses[0])
-        ptr, _ := net.LookupAddr(fmt.Sprintf("%q",host.Addresses[0]))
-        fmt.Printf("%+v", ptr)
+        ptr, _ := net.LookupAddr(fmt.Sprintf("%s",host.Addresses[0]))
+        fmt.Printf("%s", ptr)
 
         for _, port := range host.Ports {
             fmt.Printf("\tPort %+v\n", port)
