@@ -44,15 +44,20 @@ func main() {
 
     // Use the results to print an example output
     for _, host := range result.Hosts {
+		//host down
         if len(host.Ports) == 0 || len(host.Addresses) == 0 {
             continue
         }
 
 		host_ipv4 := fmt.Sprintf("%s", host.Addresses[0])
         ptr, _ := net.LookupAddr(host_ipv4)
-        fmt.Println("%s", ptr)
+		//hostname_ptr_recon := ""
+		//hostname_ptr_recon = strings.Split(ptr[0], ".")[0]
 
-		fmt.Println(host_ipv4)
+		if(ptr == nil){
+			fmt.Println("null detected")
+		}
+
         for _, port := range host.Ports {
             if(port.Status() == "open") {
 				port_str := fmt.Sprintf("%d",port.ID)
@@ -71,15 +76,19 @@ func main() {
 				result, warnings, err := scanner.Run()
 			    check(err)
 
-			    if warnings != nil {
-			        fmt.Printf("Warnings: \n %v", warnings)
-			    }
-				nmap_hostname := result.Hosts[0].Ports[0].Scripts[0].Output
-				if(strings.Contains(nmap_hostname, "Authentication Failed")){
-					log.Println("[-] Login failed for host: "+ host_ipv4 + nmap_hostname)
+				if(result.Hosts != nil) {
+					fmt.Println("%+v", result)
+				    if warnings != nil {
+				        fmt.Printf("Warnings: \n %v", warnings)
+				    }
+					nmap_hostname := result.Hosts[0].Ports[0].Scripts[0].Output
+					if(strings.Contains(nmap_hostname, "Authentication Failed")){
+						log.Println("[-] Login failed for host: "+ host_ipv4 + nmap_hostname)
+					} else {
+						fmt.Println("[+] Ok: "+host_ipv4 + nmap_hostname)
+					}
+					//fmt.Printf("%+v", result.Hosts[0].Ports[0].Scripts[0].Output)
 				}
-				fmt.Printf("[+] Ok: "+host_ipv4 + nmap_hostname)
-				//fmt.Printf("%+v", result.Hosts[0].Ports[0].Scripts[0].Output)
 			}
         }
     }
