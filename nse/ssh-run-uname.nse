@@ -4,48 +4,46 @@ local table = require "table"
 local libssh2_util = require "libssh2-utility"
 
 description = [[
-Runs remote command on ssh server and returns command output.
+Runs uname -r on defined target using providen credentials.
 ]]
 
 ---
--- @usage nmap -p 22 -v -d --script=ssh-run --datadir=./ \
--- --script-args="ssh-run.cmd=ls -l /, ssh-run.username=myusername, ssh-run.password=mypassword" <target>
+-- @usage nmap -p 22 --script=ssh-run \
+-- --script-args="ssh-run.port=8567, ssh-run.username=myusername, ssh-run.password=mypassword" <target>
 --
 -- @output
--- 22/tcp open  ssh     syn-ack 0
--- | run-remote:
+-- 22/tcp open  ssh
+-- | ssh-run:
 -- |   output:
--- |     total 124
--- | drwxr-xr-x   2 root       root        4096 Jun 23 09:34 bin
--- | drwxr-xr-x   3 root       root        4096 Jun 19 12:42 boot
--- | drwxr-xr-x   2 root       root        4096 Feb  6  2013 cdrom
--- | drwxr-xr-x  16 root       root        4340 Jul 17 13:37 dev
--- | drwxr-xr-x 162 root       root       12288 Jul 20 12:10 etc
--- | drwxr-xr-x  15 root       root        4096 Jun 23 15:20 home
--- | ...
--- |_drwxr-xr-x  14 root       root        4096 Jun  6 14:58 var
+-- |_   machine-hostname
+--
+-- @xmloutput
+-- <elem key="output">total 91\x0D&#xa;drwxr-xr-x   2 root root  4096 Jun  5 11:56 bin\x0D&#xa;drwxr-xr-x   4 root root  3072 Jun  5 12:42 boot\x0D&#xa;drwxrwxr-x   2 root root  4096 Jun 22  2017 cdrom\x0D&#xa;drwxr-xr-x  20 root root  4060 Jun 23 10:26 dev\x0D&#xa;drwxr-xr-x 127 root root 12288 Jun  5 11:56 etc\x0D&#xa;drwxr-xr-x   3 root root  4096 Jun 22  2017 home\x0D&#xa;....\x0D&#xa;drwxr-xr-x  13 root root  4096 Jul 20  2016 var\x0D&#xa;</elem>
 --
 -- @args ssh-run.username    Username to authenticate as
 -- @args ssh-run.password    Password to use if using password authentication
 -- @args ssh-run.privatekey    Privatekeyfile to use if using publickey authentication
 -- @args ssh-run.passphrase    Passphrase for privatekey if using publickey authentication
--- @args ssh-run.cmd   Command to run on remote server
+-- @args ssh-run.Port   Port where ssh is listening on
 
 
-author = "Devin Bjelland"
-license = "Same as Nmap--See http://nmap.org/book/man-legal.html"
+author = "Luca Bodini"
+license = "Same as Nmap--See https://nmap.org/book/man-legal.html"
 
 categories = {
   'intrusive',
 }
 
-portrule = shortport.port_or_service(22, 'ssh')
+
 
 local username = stdnse.get_script_args 'ssh-run.username'
-local cmd = stdnse.get_script_args 'ssh-run.cmd'
 local password = stdnse.get_script_args 'ssh-run.password'
 local privatekey = stdnse.get_script_args 'ssh-run.privatekey'
 local passphrase = stdnse.get_script_args 'ssh-run.passphrase'
+local custom_port = stdnse.get_script_args 'ssh-run.port'
+local cmd = "uname -n"
+
+portrule = shortport.port_or_service(custom_port, 'ssh')
 
 function action (host, port)
   local conn = libssh2_util.SSHConnection:new()

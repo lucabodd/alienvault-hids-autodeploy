@@ -60,7 +60,7 @@ func main() {
 			        nmap.WithTargets(host_ipv4),
 			        nmap.WithContext(ctx),
 					nmap.WithPorts(port_str),
-					nmap.WithScripts("./sbin/"),
+					nmap.WithScripts("./nse/ssh-run-uname"),
 					nmap.WithScriptArguments(
 						map[string]string{
 							"ssh-run.port": port_str,
