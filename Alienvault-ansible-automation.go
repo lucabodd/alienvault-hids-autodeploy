@@ -142,6 +142,7 @@ func main() {
 		}
 	}
 	//assets map now is ready for ssh config and ansible
+	
 }
 
 func check(e error) {
