@@ -6,13 +6,15 @@ import (
 	"fmt"
     "time"
     "context"
-    "net"
+	"io/ioutil"
 	//ansibler "github.com/apenella/go-ansible"
 	//"bytes"
 	//"strings"
-	//"github.com/tidwall/gjson"
+	"github.com/tidwall/gjson"
     "github.com/Ullaakut/nmap"
 	"log"
+	"net"
+	"net/http"
 	"strings"
 )
 
@@ -28,26 +30,28 @@ func main() {
     ports := flag.String("p","22","Specify on wich ports SSH migt be listening on")
 	username := flag.String("u","root","Specify an username that has access to all machines")
 	password := flag.String("password","","Set a password for defined username")
+	latitude := flag.String("site-lat","","Override latitude discovery for a site")
+	longitude := flag.String("site-long","","Override longitude discovery for a site")
     flag.Parse()
 
-    // setup nmap scanner
-	log.Println("[+] Setting Up NSE engine")
+    // setup nmap scanner in order to discover active hosts
+	log.Println("[*] Setting Up NSE engine")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
     defer cancel()
     scanner, err := nmap.NewScanner(
         nmap.WithTargets(*subnet),
         nmap.WithPorts(*ports),
         nmap.WithContext(ctx),
-		nmap.WithOSScanGuess(),
     )
-    check(err)
+	check(err)
     result, warnings, err := scanner.Run()
     check(err)
     if warnings != nil {
         fmt.Printf("Warnings: \n %v", warnings)
     }
+	log.Println("[+] Detected network's alive hosts ... diggin' deeper ...")
 
-	//retrive hostnames and insert into a map
+	//retrive hostnames and insert into a map and perform more accurate scan
     for _, host := range result.Hosts {
 		//host down
         if len(host.Ports) == 0 || len(host.Addresses) == 0 {
@@ -72,7 +76,7 @@ func main() {
 				        nmap.WithTargets(host_ipv4),
 				        nmap.WithContext(ctx),
 						nmap.WithPorts(port_str),
-						nmap.WithScripts("./nse/ssh-run-uname"),
+						nmap.WithScripts("./sbin/nmap/nse/ssh-run-uname"),
 						nmap.WithScriptArguments(
 							map[string]string{
 								"ssh-run.port": port_str,
@@ -82,8 +86,6 @@ func main() {
 				    )
 					result, warnings, err := scanner.Run()
 				    check(err)
-					//refreshing port number after nmap manipulation
-					port_str = fmt.Sprintf("%d",port.ID)
 
 					if(result.Hosts != nil) {
 					    if warnings != nil {
@@ -106,14 +108,15 @@ func main() {
         	}
 		}
 	}
-	// deleting elements with SSH problems
+	// deleting elements with SSH problems and with undefined PTR record
 	for ip, host := range assets {
 		if host.Port == "" && host.Hostname == "" {
 			delete(assets, ip)
-			log.Println("[-] SSH seems not to be listening on", ip, "at specified ports, and hostname cannot be determined by scanning PTR. Escluding host from inventory")
+			log.Println("[-] SSH seems not to be listening on", ip, "at specified ports, and hostname cannot be determined by scanning PTR. Escluding host from Assets.csv")
 		}
 	}
-
+	// generate .csv that needs to be imported in alienvault
+	alienvaultAssetsGenerator(assets, *latitude, *longitude)
 
 }
 
@@ -123,6 +126,54 @@ func check(e error) {
 		panic(e)
 	}
 }
+
+//Generate Assets.csv for alienvault
+func alienvaultAssetsGenerator(assets map[string]*Host, user_latitude string, user_longitude string) {
+	var latitude string
+	var longitude string
+	log.Println("[*] Retriveing site coordinates...")
+	url := "https://freegeoip.app/json/"
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("content-type", "application/json")
+	res, _ := http.DefaultClient.Do(req)
+	defer res.Body.Close()
+	geoloc, _ := ioutil.ReadAll(res.Body)
+
+	if (user_latitude != "") {
+		latitude = user_latitude
+	} else {
+		log.Println("[*] Detecting latitude...")
+		value := gjson.Get(string(geoloc), "latitude")
+		latitude = value.String()
+		log.Println("[+] LAT: "+latitude)
+	}
+	if (user_longitude != ""){
+		longitude = user_longitude
+	} else {
+		log.Println("[+] Detecting longitude...")
+		value := gjson.Get(string(geoloc), "longitude")
+		longitude = value.String()
+		log.Println("[+] LNG: "+longitude)
+	}
+
+	log.Println("[*] Generating Assets.csv")
+	bt := 0
+	f, err := os.Create("Assets.csv")
+	check(err)
+	defer f.Close()
+	bc, err := f.WriteString("\"IPs\";\"Hostname\";\"FQDNs\";\"Description\";\"Asset Value\";\"Operating System\";\"Latitude\";\"Longitude\";\"Host ID\";\"External Asset\";\"Device Type\"")
+	bt += bc
+	check(err)
+	for ip, host := range assets {
+	   	bc, err := f.WriteString("\n\""+ip+"\";\""+host.Hostname+"\";\"\";\"\";\"2\";\"\";\""+latitude+"\";\""+longitude+"\";\"\";\"\";\"\"")
+		bt += bc
+	   	check(err)
+	}
+	f.Sync()
+	log.Printf("[+] Alienvault Assets.csv generated in working dir. %d bytes written", bt)
+}
+
 
 //ssh config sshConfigGenerator
 // ansible Inventory
@@ -152,5 +203,5 @@ func sshConfigGenerator(assets map[string]*Host, user string) {
 	   	check(err)
 		f.Sync()
 		log.Println("[+] SSH config generated according to scanned hosts")
-}
+	}
 }
