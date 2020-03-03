@@ -24,25 +24,28 @@ type Host struct {
 }
 
 func main() {
+	//Ansible setup env
+	os.Setenv("ANSIBLE_STDOUT_CALLBACK", "json")
+	os.Setenv("ANSIBLE_HOST_KEY_CHECKING", "False")
 	//vars
 	var assets = make(map[string]*Host)
 	var subnet string
 	var ports string
-	var username string
-	var password string
+	var ssh_username string
+	var ssh_password string
 	var latitude string
 	var longitude string
 	var help bool
 
 	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
     flag.StringVar(&ports, "p", "22", "Specify on wich ports SSH migt be listening on")
-	flag.StringVar(&username, "u", "root", "Specify an username that has access to all machines")
-	flag.StringVar(&password, "password", "", "Set a password for defined username")
+	flag.StringVar(&ssh_username, "u", "root", "Specify an username that has access to all machines")
+	flag.StringVar(&ssh_password, "password", "", "Set a password for defined username")
 	flag.StringVar(&latitude, "site-lat", "", "Override latitude discovery for a site")
 	flag.StringVar(&longitude, "site-long", "","Override longitude discovery for a site")
 	flag.BoolVar(&help, "help", false, "prints this help message")
     flag.Parse()
-	if subnet == "" || password == "" || help {
+	if subnet == "" || ssh_password == "" || help {
 		fmt.Println("[-] ERROR: Not enough arguments")
 		fmt.Println("Usage: Alienvault-ansible-automation [OPTIONS]")
 		fmt.Println("One ore more required flag has not been prodided.")
@@ -97,8 +100,8 @@ func main() {
 						nmap.WithScriptArguments(
 							map[string]string{
 								"ssh-run.port": port_str,
-								"ssh-run.username": username,
-								"ssh-run.password": password,
+								"ssh-run.username": ssh_username,
+								"ssh-run.password": ssh_password,
 							}),
 				    )
 					result, warnings, err := scanner.Run()
@@ -133,7 +136,7 @@ func main() {
 		}
 	}
 	// generate .csv that needs to be imported in alienvault
-	alienvaultAssetsGenerator(assets, latitude, longitude)
+	alienvaultAssets(assets, latitude, longitude)
 	// deleting hosts that could not be managed via ssh
 	for ip, host := range assets {
 		if host.Port == "" {
@@ -142,7 +145,9 @@ func main() {
 		}
 	}
 	//assets map now is ready for ssh config and ansible
-	
+	sshConfig(assets, ssh_username)
+
+	//now do all the ansible magic
 }
 
 func check(e error) {
@@ -153,7 +158,7 @@ func check(e error) {
 }
 
 //Generate Assets.csv for alienvault
-func alienvaultAssetsGenerator(assets map[string]*Host, user_latitude string, user_longitude string) {
+func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longitude string) {
 	var latitude string
 	var longitude string
 	log.Println("[*] Retriveing site coordinates...")
@@ -203,7 +208,7 @@ func alienvaultAssetsGenerator(assets map[string]*Host, user_latitude string, us
 //ssh config sshConfigGenerator
 // ansible Inventory
 //deploy
-func sshConfigGenerator(assets map[string]*Host, user string) {
+func sshConfig(assets map[string]*Host, user string) {
 	for ip, host := range assets {
 		log.Println("[*] Generating ssh config")
 		//vars
@@ -229,4 +234,8 @@ func sshConfigGenerator(assets map[string]*Host, user string) {
 		f.Sync()
 		log.Println("[+] SSH config generated according to scanned hosts")
 	}
+}
+
+func ansibleInventory(assets map[string]*Host, user string) {
+
 }
