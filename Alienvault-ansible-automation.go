@@ -22,20 +22,27 @@ type Host struct {
 	Hostname string
 	Port string
 }
-var help bool
 
 func main() {
 	//vars
 	var assets = make(map[string]*Host)
-	subnet := flag.String("subnet-cidr", "", "Specify subnet to be scanned")
-    ports := flag.String("p","22","Specify on wich ports SSH migt be listening on")
-	username := flag.String("u","root","Specify an username that has access to all machines")
-	password := flag.String("password","","Set a password for defined username")
-	latitude := flag.String("site-lat","","Override latitude discovery for a site")
-	longitude := flag.String("site-long","","Override longitude discovery for a site")
-	flag.BoolVar(&help, "help",false,"prints this help message")
+	var subnet string
+	var ports string
+	var username string
+	var password string
+	var latitude string
+	var longitude string
+	var help bool
+
+	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
+    flag.StringVar(&ports, "p", "22", "Specify on wich ports SSH migt be listening on")
+	flag.StringVar(&username, "u", "root", "Specify an username that has access to all machines")
+	flag.StringVar(&password, "password", "", "Set a password for defined username")
+	flag.StringVar(&latitude, "site-lat", "", "Override latitude discovery for a site")
+	flag.StringVar(&longitude, "site-long", "","Override longitude discovery for a site")
+	flag.BoolVar(&help, "help", false, "prints this help message")
     flag.Parse()
-	if *subnet == "" || *password == "" || help {
+	if subnet == "" || password == "" || help {
 		fmt.Println("[-] ERROR: Not enough arguments")
 		fmt.Println("Usage: Alienvault-ansible-automation [OPTIONS]")
 		fmt.Println("One ore more required flag has not been prodided.")
@@ -49,8 +56,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
     defer cancel()
     scanner, err := nmap.NewScanner(
-        nmap.WithTargets(*subnet),
-        nmap.WithPorts(*ports),
+        nmap.WithTargets(subnet),
+        nmap.WithPorts(ports),
         nmap.WithContext(ctx),
     )
 	check(err)
@@ -90,8 +97,8 @@ func main() {
 						nmap.WithScriptArguments(
 							map[string]string{
 								"ssh-run.port": port_str,
-								"ssh-run.username": *username,
-								"ssh-run.password": *password,
+								"ssh-run.username": username,
+								"ssh-run.password": password,
 							}),
 				    )
 					result, warnings, err := scanner.Run()
@@ -118,16 +125,23 @@ func main() {
         	}
 		}
 	}
-	// deleting elements with SSH problems and with undefined PTR record
+	// deleting hosts with undefined hostname PTR&SSH fail
 	for ip, host := range assets {
 		if host.Port == "" && host.Hostname == "" {
 			delete(assets, ip)
-			log.Println("[-] SSH seems not to be listening on", ip, "at specified ports, and hostname cannot be determined by scanning PTR. Escluding host from Assets.csv")
+			log.Println("[-] Cannot determine hostname of", ip, "PTR Query returns null and could not connect to SSH. Escluding host from Assets.csv")
 		}
 	}
 	// generate .csv that needs to be imported in alienvault
-	alienvaultAssetsGenerator(assets, *latitude, *longitude)
-
+	alienvaultAssetsGenerator(assets, latitude, longitude)
+	// deleting hosts that could not be managed via ssh
+	for ip, host := range assets {
+		if host.Port == "" {
+			delete(assets, ip)
+			log.Println("[-] SSH seems not to be listening on", ip, "at specified ports. Escluding host from hids-deploy")
+		}
+	}
+	//assets map now is ready for ssh config and ansible
 }
 
 func check(e error) {
