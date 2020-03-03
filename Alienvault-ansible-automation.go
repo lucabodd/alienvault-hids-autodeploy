@@ -22,6 +22,7 @@ type Host struct {
 	Hostname string
 	Port string
 }
+var help bool
 
 func main() {
 	//vars
@@ -32,7 +33,16 @@ func main() {
 	password := flag.String("password","","Set a password for defined username")
 	latitude := flag.String("site-lat","","Override latitude discovery for a site")
 	longitude := flag.String("site-long","","Override longitude discovery for a site")
+	flag.BoolVar(&help, "help",false,"prints this help message")
     flag.Parse()
+	if *subnet == "" || *password == "" || help {
+		fmt.Println("[-] ERROR: Not enough arguments")
+		fmt.Println("Usage: Alienvault-ansible-automation [OPTIONS]")
+		fmt.Println("One ore more required flag has not been prodided.")
+		fmt.Println("Note that using less flag than defined could lead program into errors (not required flags are site-*). \nOmit flags only if you are aware of what are you doin'")
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 
     // setup nmap scanner in order to discover active hosts
 	log.Println("[*] Setting Up NSE engine")
