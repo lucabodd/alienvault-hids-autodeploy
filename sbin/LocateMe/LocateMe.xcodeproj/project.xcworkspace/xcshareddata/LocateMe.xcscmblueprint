@@ -1,0 +1,25 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "71732433-81d3-41b0-bfc5-5a78a3658b4e",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+    "71732433-81d3-41b0-bfc5-5a78a3658b4e" : {
+
+    }
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "71732433-81d3-41b0-bfc5-5a78a3658b4e" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "976A0738-3891-42AF-A9A1-72582C1219F5",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "71732433-81d3-41b0-bfc5-5a78a3658b4e" : "iHarder_SVN_Checkout\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "LocateMe",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "locateme\/LocateMe.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "svn+ssh:\/\/svn.code.sf.net\/p\/iharder\/code",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Subversion",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "71732433-81d3-41b0-bfc5-5a78a3658b4e"
+    }
+  ]
+}

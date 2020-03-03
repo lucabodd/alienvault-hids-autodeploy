@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	//"os"
+	"os"
 	"fmt"
     "time"
     "context"
@@ -16,9 +16,14 @@ import (
 	"strings"
 )
 
+type Host struct {
+	Hostname string
+	Port string
+}
+
 func main() {
 	//vars
-	var assets = make(map[string]string)
+	var assets = make(map[string]*Host)
 	subnet := flag.String("subnet-cidr", "", "Specify subnet to be scanned")
     ports := flag.String("p","22","Specify on wich ports SSH migt be listening on")
 	username := flag.String("u","root","Specify an username that has access to all machines")
@@ -26,6 +31,7 @@ func main() {
     flag.Parse()
 
     // setup nmap scanner
+	log.Println("[+] Setting Up NSE engine")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
     defer cancel()
     scanner, err := nmap.NewScanner(
@@ -41,24 +47,27 @@ func main() {
         fmt.Printf("Warnings: \n %v", warnings)
     }
 
-	//iterate trough scanned hosts
+	//retrive hostnames and insert into a map
     for _, host := range result.Hosts {
 		//host down
         if len(host.Ports) == 0 || len(host.Addresses) == 0 {
             continue
         }
 
+		//init loop vars
 		host_ipv4 := fmt.Sprintf("%s", host.Addresses[0])
         ptr, _ := net.LookupAddr(host_ipv4)
+		assets[host_ipv4] = &Host{}
 
-		if(ptr != nil){
-			hostname_ptr_recon := ""
-			hostname_ptr_recon = strings.Split(ptr[0], ".")[0]
-			assets[host_ipv4] = hostname_ptr_recon
-		} else {
-	        for _, port := range host.Ports {
-	            if(port.Status() == "open") {
-					port_str := fmt.Sprintf("%d",port.ID)
+        for _, port := range host.Ports {
+			port_str := fmt.Sprintf("%d",port.ID)
+            if(port.Status() == "open") {
+				if ptr != nil {
+					hostname_ptr_recon := ""
+					hostname_ptr_recon = strings.Split(ptr[0], ".")[0]
+					assets[host_ipv4].Hostname = hostname_ptr_recon
+					assets[host_ipv4].Port = port_str
+				} else {
 					scanner, err := nmap.NewScanner(
 				        nmap.WithTargets(host_ipv4),
 				        nmap.WithContext(ctx),
@@ -73,10 +82,12 @@ func main() {
 				    )
 					result, warnings, err := scanner.Run()
 				    check(err)
+					//refreshing port number after nmap manipulation
+					port_str = fmt.Sprintf("%d",port.ID)
 
 					if(result.Hosts != nil) {
 					    if warnings != nil {
-					        fmt.Printf("Warnings: \n %v", warnings)
+					        fmt.Printf("[!] \n %v", warnings)
 					    }
 						nmap_hostname := result.Hosts[0].Ports[0].Scripts[0].Output
 						if(strings.Contains(nmap_hostname, "Authentication Failed")){
@@ -84,74 +95,62 @@ func main() {
 						} else {
 							nmap_hostname = strings.Replace(nmap_hostname, "output:", "", -1)
 							nmap_hostname = strings.Replace(nmap_hostname, "\n", "", -1)
+							nmap_hostname = strings.Replace(nmap_hostname, "\r", "", -1)
 							nmap_hostname = strings.Replace(nmap_hostname, " ", "", -1)
-							assets[host_ipv4] = nmap_hostname
+							nmap_hostname = strings.Split(nmap_hostname, ".")[0]
+							assets[host_ipv4].Hostname = nmap_hostname
+							assets[host_ipv4].Port = port_str
 						}
 					}
 				}
-	        }
+        	}
 		}
-    }
+	}
+	// deleting elements with SSH problems
+	for ip, host := range assets {
+		if host.Port == "" && host.Hostname == "" {
+			delete(assets, ip)
+			log.Println("[-] SSH seems not to be listening on", ip, "at specified ports, and hostname cannot be determined by scanning PTR. Escluding host from inventory")
+		}
+	}
 
-	for key, value := range assets {
-        fmt.Println("Hex value of", key, "is", value)
-    }
 
 }
 
 func check(e error) {
 	if e != nil {
-		fmt.Println(e)
+		log.Println(e)
 		panic(e)
 	}
 }
 
 //ssh config sshConfigGenerator
-func sshConfigGenerator(mdb *mongo.Client, mongo_instance string, skdc_user string){
-	log.Println("[*] Generating ssh config")
-	//vars
-	bt := 0
-	f, err := os.Create("/home/"+skdc_user+"/.ssh/config")
-	check(err)
-	defer f.Close()
-
-	//Define collections
-	hosts := mdb.Database(mongo_instance).Collection("hosts")
-
-	findOptProj := options.Find().SetProjection(bson.M{"hostname": 1,"proxy":1, "port":1, "ip":1})
-	cur, err := hosts.Find(context.TODO(), bson.D{{}}, findOptProj)
-	check(err)
-	defer cur.Close(context.TODO())
-	for cur.Next(context.TODO()) {
-	   var host Host
-	   err := cur.Decode(&host)
-	   check(err)
-	   bc, err := f.WriteString("Host "+host.Hostname+"\n")
-	   bt += bc
-	   check(err)
-	   bc, err = f.WriteString("    User "+skdc_user+"\n")
-	   bt += bc
-	   check(err)
-	   if(host.Proxy == "none") {
-		   bc, err = f.WriteString("    HostName "+host.Ip+"\n")
-		   bt += bc
-		   check(err)
-		   bc, err = f.WriteString("    Port "+host.Port+"\n")
-		   bt += bc
-		   check(err)
-	   } else {
-		   bc, err = f.WriteString("    HostName "+host.Hostname+"\n")
-		   bt += bc
-		   check(err)
-		   bc, err = f.WriteString("    ProxyCommand ssh "+host.Proxy+" -W "+host.Ip+":"+host.Port+" \n")
-		   bt += bc
-		   check(err)
-	   }
-	   bc, err = f.WriteString("\n")
-	   bt += bc
-	   check(err)
-	}
-	f.Sync()
-	log.Println("    |- bytes written:", bt)
-	log.Println("[+] SSH config generated according to MongoDB")
+// ansible Inventory
+//deploy
+func sshConfigGenerator(assets map[string]*Host, user string) {
+	for ip, host := range assets {
+		log.Println("[*] Generating ssh config")
+		//vars
+		bt := 0
+		f, err := os.Create("~/.ssh/config.test")
+		check(err)
+		defer f.Close()
+	   	bc, err := f.WriteString("Host "+host.Hostname+"\n")
+	   	bt += bc
+	   	check(err)
+	   	bc, err = f.WriteString("    User "+user+"\n")
+	   	bt += bc
+	   	check(err)
+	   	bc, err = f.WriteString("    HostName "+ip+"\n")
+	   	bt += bc
+	   	check(err)
+	   	bc, err = f.WriteString("    Port "+host.Port+"\n")
+	   	bt += bc
+	   	check(err)
+	   	bc, err = f.WriteString("\n")
+	   	bt += bc
+	   	check(err)
+		f.Sync()
+		log.Println("[+] SSH config generated according to scanned hosts")
+}
 }

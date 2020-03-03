@@ -1,0 +1,69 @@
+.\"
+.TH LOCATEME "1" "May 2016" "LocateMe 0.3" "User Commands"
+.SH NAME
+LocateMe \- output the current location
+.SH SYNOPSIS
+.B LocateMe
+.RB [ \-ghl ]
+.RB [ \-f
+.IR format ]
+.SH DESCRIPTION
+Returns your computer's current location using Apple's geolocation services.
+.TP
+.B \-g
+Generate a Google Map URL
+.TP
+.B \-h
+This help message
+.TP
+.B \-l
+Generate long, multiline format
+.TP
+.BI \-f " format
+Generate a custom output with the following placeholders:
+.RS
+.PP
+.PD 0
+.TP
+.B {LAT}
+Latitude as a floating point number
+.TP
+.B {LON}
+Longitude as a floating point number
+.TP
+.B {ALT}
+Altitude in meters as a floating point number
+.TP
+.B {SPD}
+Speed in meters per second as a floating point number
+.TP
+.B {DIR}
+Direction in degrees from true north as a floating point number
+.TP
+.B {HAC}
+Horizontal accuracy in meters as a floating point number
+.TP
+.B {VAC}
+Vertical accuracy in meters as a floating point number
+.TP
+.B {TIME}
+Timestamp (with date) of the location fix
+.TP
+.B {HOST}
+Computer hostname
+.PD
+.RE
+.SH EXAMPLES
+$
+.B LocateMe \-f \*(lqlat={LAT},lon={LON}\*(rq
+.br
+lat=12.34567,lon=98.76543
+.LP
+$
+.B LocateMe \-f \*(lq<lat>{LAT}</lat><lon>{LON}</lon><alt>{ALT}</alt>\*(rq
+.br
+<lat>12.34567</lat><lon>98.76543</lon><alt>123</alt>
+.SH AUTHOR
+Robert Harder <rob@iharder.net>
+.SH "SEE ALSO"
+<http://iharder.sourceforge.net>
