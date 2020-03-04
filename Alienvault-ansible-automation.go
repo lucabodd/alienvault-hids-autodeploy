@@ -213,7 +213,7 @@ func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longit
 	if (user_longitude != ""){
 		longitude = user_longitude
 	} else {
-		log.Println("[+] Detecting longitude...")
+		log.Println("[*] Detecting longitude...")
 		value := gjson.Get(string(geoloc), "longitude")
 		longitude = value.String()
 		log.Println("[+] LNG: "+longitude)
