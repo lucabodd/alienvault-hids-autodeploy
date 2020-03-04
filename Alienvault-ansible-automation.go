@@ -108,10 +108,7 @@ func main() {
 					assets[host_ipv4].Hostname, err = sshRunUname(host_ipv4, port_str, ssh_username, ssh_password)
 					check(err)
 				}
-				//set open port only if hostname is defined (port open || PTR)
-				if assets[host_ipv4].Hostname != "" {
-					assets[host_ipv4].Port = port_str
-				}
+				assets[host_ipv4].Port = port_str
         	}
 		}
 	}
@@ -120,21 +117,21 @@ func main() {
 	for ip, host := range assets {
 		if host.Port == "" && host.Hostname == "" {
 			delete(assets, ip)
-			log.Println("[-] Cannot determine hostname of", ip, "PTR Query returns null and could not connect to SSH. Escluding host from Assets.csv")
+			log.Println("[-] Cannot determine hostname of", ip, "PTR Query returns null and SSH is not listening on specified ports. Escluding",ip,"host from Assets.csv")
 		}
 	}
 	// generate .csv that needs to be imported in alienvault
 	alienvaultAssets(assets, latitude, longitude)
 	// deleting hosts that could not be managed via ssh
 	for ip, host := range assets {
-		if host.Port == "" {
+		if host.Hostname == "" {
 			delete(assets, ip)
-			log.Println("[-] SSH seems not to be listening on", ip, "at specified ports. Escluding host from hids-deploy")
+			log.Println("[-] SSH is listening on", ip, "but connection cannot be established. Escluding host from hids-deploy")
 		}
 	}
 	//checking if sensor is in the same subnet of assets and is reachable
 	if _, hit := assets[sensor]; !hit {
-		log.Println("[!] Providen sensor ip",sensor,"has not been scanned. That's fine but please make sure that host is reachable via SSH")
+		log.Println("[!] Providen sensor ip",sensor,"has not been scanned. this may occur if PTR is defined or if sensor is out of scanned set")
 		assets[sensor] = &Host{"",""}
 	}
 	log.Println("[*] scanning host", sensor)
@@ -144,7 +141,7 @@ func main() {
 	assets[sensor].Port = sensor_port
 	check(err)
 	if (assets[sensor].Hostname == "") {
-		log.Println("[-] could not establish a connection in order to retrive sensor informations, program cannot continue.\n On Next run check for providen creds")
+		log.Println("[-] could not establish a connection in order to retrive sensor informations, program cannot continue.\n On Next run check for sensor's providen creds")
 		kill("ERR: COULD NOT CONNECT TO SENSOR")
 	}
 	//assets map now is ready for ssh config and ansible
@@ -204,7 +201,7 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longitude string) {
 	var latitude string
 	var longitude string
-	log.Println("[*] Retriveing site coordinates...")
+	log.Println("[*] geolocation not defined in command line, retriveing site geogrphic cordinates...")
 	url := "https://freegeoip.app/json/"
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("accept", "application/json")
@@ -216,7 +213,7 @@ func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longit
 	if (user_latitude != "") {
 		latitude = user_latitude
 	} else {
-		log.Println("[*] Detecting latitude...")
+		log.Println("[*] Detecting site latitude...")
 		value := gjson.Get(string(geoloc), "latitude")
 		latitude = value.String()
 		log.Println("[+] LAT: "+latitude)
@@ -224,13 +221,13 @@ func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longit
 	if (user_longitude != ""){
 		longitude = user_longitude
 	} else {
-		log.Println("[*] Detecting longitude...")
+		log.Println("[*] Detecting site longitude...")
 		value := gjson.Get(string(geoloc), "longitude")
 		longitude = value.String()
 		log.Println("[+] LNG: "+longitude)
 	}
 
-	log.Println("[*] Generating Assets.csv")
+	log.Println("[*] Generating Alienvault Assets.csv")
 	bt := 0
 	f, err := os.Create("Assets.csv")
 	check(err)
@@ -318,7 +315,7 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
 		}
 	}
 	f.Sync()
-	log.Printf("[+] Ansible inventory generated %d bytes written", bt)
+	log.Printf("[+] Ansible inventory generated, %d bytes written", bt)
 }
 
 func ansibleUnsafeInventory(assets map[string]*Host, ssh_username string, ssh_password string,sensor_ssh_username string, sensor_ssh_password string, sensor string) {
@@ -343,7 +340,7 @@ func ansibleUnsafeInventory(assets map[string]*Host, ssh_username string, ssh_pa
 		}
 	}
 	f.Sync()
-	log.Printf("[+] Ansible UNSAFE inventory generated %d bytes written", bt)
+	log.Printf("[+] Ansible UNSAFE inventory generated, %d bytes written", bt)
 }
 
 func check(e error) {
