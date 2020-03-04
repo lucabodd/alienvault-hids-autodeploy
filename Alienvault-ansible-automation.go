@@ -35,6 +35,7 @@ func main() {
 	var ssh_password string
 	var latitude string
 	var longitude string
+	var sensor string
 	var help bool
 
 	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
@@ -43,9 +44,10 @@ func main() {
 	flag.StringVar(&ssh_password, "password", "", "Set a password for defined username")
 	flag.StringVar(&latitude, "site-lat", "", "Override latitude discovery for a site")
 	flag.StringVar(&longitude, "site-long", "","Override longitude discovery for a site")
+	flag.StringVar(&sensor, "sensor", "","Sensor IP ossec-hids should connect to")
 	flag.BoolVar(&help, "help", false, "prints this help message")
     flag.Parse()
-	if subnet == "" || ssh_password == "" || help {
+	if subnet == "" || ssh_password == "" || sensor == "" || help {
 		fmt.Println("[-] ERROR: Not enough arguments")
 		fmt.Println("Usage: Alienvault-ansible-automation [OPTIONS]")
 		fmt.Println("One ore more required flag has not been prodided.")
@@ -236,6 +238,10 @@ func sshConfig(assets map[string]*Host, user string) {
 	}
 }
 
-func ansibleInventory(assets map[string]*Host, user string) {
+func ansibleInventory(assets map[string]*Host, sensor string) {
+	bt := 0
+	f, err := os.Create("~/.ssh/config.test")
+	if siem, hit := assets["foo"]; hit {
 
+	}
 }
