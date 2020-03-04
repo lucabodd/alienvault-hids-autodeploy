@@ -41,6 +41,7 @@ func main() {
 	var sensor_port string
 	var sensor_ssh_username string
 	var sensor_ssh_password string
+	var no_copy_id bool
 	var help bool
 
 	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
@@ -49,6 +50,7 @@ func main() {
 	flag.StringVar(&longitude, "site-long", "","Override longitude discovery for a site")
 	flag.StringVar(&sensor, "sensor", "","Sensor IP ossec-hids should connect to")
 	flag.StringVar(&sensor_port, "sensor-port", "22","Sensor IP ossec-hids should connect to")
+	flag.BoolVar(&no_copy_id, "no-copy-id", false, "Copy ssh public key to scanned assets. Set to false if you store public keys not in ~/.ssh/authorized_keys. If this flag is set to false password will be written CLEARTEXT in ansible inventory file")
 	flag.BoolVar(&help, "help", false, "prints this help message")
 	//below vars must be replaced by prompt
 	flag.StringVar(&ssh_username, "u", "root", "Specify an username that has access to all machines")
@@ -93,11 +95,11 @@ func main() {
 		//init loop vars
 		host_ipv4 := fmt.Sprintf("%s", host.Addresses[0])
         ptr, _ := net.LookupAddr(host_ipv4)
-		assets[host_ipv4] = &Host{}
+		assets[host_ipv4] = &Host{"", ""}
 
         for _, port := range host.Ports {
-			port_str := fmt.Sprintf("%d",port.ID)
             if(port.Status() == "open") {
+				port_str := fmt.Sprintf("%d",port.ID)
 				if ptr != nil {
 					hostname_ptr_recon := ""
 					hostname_ptr_recon = strings.Split(ptr[0], ".")[0]
@@ -106,10 +108,14 @@ func main() {
 					assets[host_ipv4].Hostname, err = sshRunUname(host_ipv4, port_str, ssh_username, ssh_password)
 					check(err)
 				}
-				assets[host_ipv4].Port = port_str
+				//set open port only if hostname is defined (port open || PTR)
+				if assets[host_ipv4].Hostname != "" {
+					assets[host_ipv4].Port = port_str
+				}
         	}
 		}
 	}
+
 	// deleting hosts with undefined hostname PTR&SSH fail
 	for ip, host := range assets {
 		if host.Port == "" && host.Hostname == "" {
@@ -129,7 +135,7 @@ func main() {
 	//checking if sensor is in the same subnet of assets and is reachable
 	if _, hit := assets[sensor]; !hit {
 		log.Println("[!] Providen sensor ip",sensor,"has not been scanned. That's fine but please make sure that host is reachable via SSH")
-		assets[sensor] = &Host{}
+		assets[sensor] = &Host{"",""}
 	}
 	log.Println("[*] scanning host", sensor)
 	//Expecting sensor listening for SSH on std 22
@@ -146,7 +152,12 @@ func main() {
 	sshConfig(assets, ssh_username, sensor_ssh_username, sensor)
 	//now do all the ansible magic
 	log.Println("[*] Generating ansible inventory")
-	ansibleInventory(assets, sensor)
+	if !no_copy_id {
+		ansibleInventory(assets, sensor)
+		//run nse
+	} else {
+		ansibleUnsafeInventory(assets, ssh_username, ssh_password, sensor_ssh_username, sensor_ssh_password, sensor)
+	}
 }
 
 //retrive hostname for a providen ipv4 address
@@ -287,7 +298,7 @@ func createDirIfNotExist(dir string) {
 
 func ansibleInventory(assets map[string]*Host, sensor string) {
 	bt := 0
-	f, err := os.Create("./dc/auto/Inventory")
+	f, err := os.Create("./dc/auto/inventory")
 	check(err)
 	defer f.Close()
 	bc, err := f.WriteString("[sensor]\n")
@@ -301,13 +312,38 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
 	check(err)
 	for ip, host := range assets {
 		if ip != sensor {
-			bc, err := f.WriteString(host.Hostname)
+			bc, err := f.WriteString(host.Hostname+"\n")
 			bt += bc
 			check(err)
 		}
 	}
 	f.Sync()
 	log.Printf("[+] Ansible inventory generated %d bytes written", bt)
+}
+
+func ansibleUnsafeInventory(assets map[string]*Host, ssh_username string, ssh_password string,sensor_ssh_username string, sensor_ssh_password string, sensor string) {
+	bt := 0
+	f, err := os.Create("./dc/auto/Inventory")
+	check(err)
+	defer f.Close()
+	bc, err := f.WriteString("[sensor]\n")
+	bt += bc
+	check(err)
+	bc, err = f.WriteString(assets[sensor].Hostname+" ansible_ssh_user="+sensor_ssh_username+" ansible_ssh_pass="+sensor_ssh_password+"\n\n")
+	bt += bc
+	check(err)
+	bc, err = f.WriteString("[assets]\n")
+	bt += bc
+	check(err)
+	for ip, host := range assets {
+		if ip != sensor {
+			bc, err := f.WriteString(host.Hostname+" ansible_ssh_user="+ssh_username+" ansible_ssh_pass="+ssh_password+"\n")
+			bt += bc
+			check(err)
+		}
+	}
+	f.Sync()
+	log.Printf("[+] Ansible UNSAFE inventory generated %d bytes written", bt)
 }
 
 func check(e error) {
