@@ -5,9 +5,18 @@ import (
     "log"
 )
 func main() {
-    usr, err := user.Current()
+    keyFile, err := os.Open(filename)
     if err != nil {
-        log.Fatal( err )
+    log.Fatal(err)
     }
-    fmt.Println( usr.HomeDir )
+
+    cmd := exec.Command("ssh", "user@host", "cat >> ~/.ssh/authorized_keys")
+    cmd.Stdin = keyFile
+
+    // run the command however you want
+    out, err := cmd.CombinedOutput()
+    if err != nil {
+        fmt.Println(string(out))
+        log.Fatal(err)
+    }
 }
