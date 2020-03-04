@@ -1,2 +1,5 @@
-[siem]
-alienvault-01
+[sensor]
+hqit-alienvault-01
+
+[assets]
+sviluppo-php-iakkehqit-giudiziario-01hqit-fw-02hqit-qnap-01hqit-morfeo-01hqit-pushtest-03hqit-postgres12-01hqit-ldaptest-02hqit-maven-01hqit-pushtest-02dev-erlangtd-ltsmasked-01hqit-ubimarketing-01hqit-kronos-01hqit-git-01hqit-lvmtest-01testgithqit-ldaptest-01hqit-ltsbck-01hqit-jasper-02erlanghqit-sambasrv-01hqit-ldaptest-03hqit-inaz-01hqit-ldap-01hqit-weblogic-01hqit-watest-01hqit-intllts-01hqit-hanab1-01hqit-demetra-01hqit-cerlts-01hqit-kmsweb-01hqit-cerintlwalts-01hqit-ldap-02hqit-ubimdb-01hqit-pushtest-01hqit-cerlts-02td-scults-01hqit-fwhqit-fw-01hqit-fw-01hqit-redmine-01hqit-mqadebian6-01lixie2td-morfeo-01hqit-kmsdb-01hqit-postgres12-02

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"os"
+	"os/user"
 	"fmt"
     "time"
     "context"
@@ -36,28 +38,36 @@ func main() {
 	var latitude string
 	var longitude string
 	var sensor string
+	var sensor_port string
+	var sensor_ssh_username string
+	var sensor_ssh_password string
 	var help bool
 
 	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
     flag.StringVar(&ports, "p", "22", "Specify on wich ports SSH migt be listening on")
-	flag.StringVar(&ssh_username, "u", "root", "Specify an username that has access to all machines")
-	flag.StringVar(&ssh_password, "password", "", "Set a password for defined username")
 	flag.StringVar(&latitude, "site-lat", "", "Override latitude discovery for a site")
 	flag.StringVar(&longitude, "site-long", "","Override longitude discovery for a site")
 	flag.StringVar(&sensor, "sensor", "","Sensor IP ossec-hids should connect to")
+	flag.StringVar(&sensor_port, "sensor-port", "22","Sensor IP ossec-hids should connect to")
 	flag.BoolVar(&help, "help", false, "prints this help message")
+	//below vars must be replaced by prompt
+	flag.StringVar(&ssh_username, "u", "root", "Specify an username that has access to all machines")
+	flag.StringVar(&ssh_password, "password", "", "Set a password for defined username")
+	flag.StringVar(&sensor_ssh_username, "sensor-ssh-username", "root","Sensor IP ossec-hids should connect to")
+	flag.StringVar(&sensor_ssh_password, "sensor-ssh-password", "","Sensor IP ossec-hids should connect to")
     flag.Parse()
-	if subnet == "" || ssh_password == "" || sensor == "" || help {
+	if subnet == "" || ssh_password == "" || sensor == "" || sensor_ssh_username == "" || help {
 		fmt.Println("[-] ERROR: Not enough arguments")
 		fmt.Println("Usage: Alienvault-ansible-automation [OPTIONS]")
 		fmt.Println("One ore more required flag has not been prodided.")
 		fmt.Println("Note that using less flag than defined could lead program into errors (not required flags are site-*). \nOmit flags only if you are aware of what are you doin'")
 		flag.PrintDefaults()
-		os.Exit(0)
+		kill("ERR: NOT ENAUGH ARGS")
 	}
 
     // setup nmap scanner in order to discover active hosts
 	log.Println("[*] Setting Up NSE engine")
+	log.Println("[*] Scanning network")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
     defer cancel()
     scanner, err := nmap.NewScanner(
@@ -92,41 +102,11 @@ func main() {
 					hostname_ptr_recon := ""
 					hostname_ptr_recon = strings.Split(ptr[0], ".")[0]
 					assets[host_ipv4].Hostname = hostname_ptr_recon
-					assets[host_ipv4].Port = port_str
 				} else {
-					scanner, err := nmap.NewScanner(
-				        nmap.WithTargets(host_ipv4),
-				        nmap.WithContext(ctx),
-						nmap.WithPorts(port_str),
-						nmap.WithScripts("./sbin/nmap/nse/ssh-run-uname"),
-						nmap.WithScriptArguments(
-							map[string]string{
-								"ssh-run.port": port_str,
-								"ssh-run.username": ssh_username,
-								"ssh-run.password": ssh_password,
-							}),
-				    )
-					result, warnings, err := scanner.Run()
-				    check(err)
-
-					if(result.Hosts != nil) {
-					    if warnings != nil {
-					        fmt.Printf("[!] \n %v", warnings)
-					    }
-						nmap_hostname := result.Hosts[0].Ports[0].Scripts[0].Output
-						if(strings.Contains(nmap_hostname, "Authentication Failed")){
-							log.Println("[-] Login failed for host: "+ host_ipv4 + " could not determine hostname, to scan host consider to add a PTR record or provide valid host credentials")
-						} else {
-							nmap_hostname = strings.Replace(nmap_hostname, "output:", "", -1)
-							nmap_hostname = strings.Replace(nmap_hostname, "\n", "", -1)
-							nmap_hostname = strings.Replace(nmap_hostname, "\r", "", -1)
-							nmap_hostname = strings.Replace(nmap_hostname, " ", "", -1)
-							nmap_hostname = strings.Split(nmap_hostname, ".")[0]
-							assets[host_ipv4].Hostname = nmap_hostname
-							assets[host_ipv4].Port = port_str
-						}
-					}
+					assets[host_ipv4].Hostname, err = sshRunUname(host_ipv4, port_str, ssh_username, ssh_password)
+					check(err)
 				}
+				assets[host_ipv4].Port = port_str
         	}
 		}
 	}
@@ -146,16 +126,66 @@ func main() {
 			log.Println("[-] SSH seems not to be listening on", ip, "at specified ports. Escluding host from hids-deploy")
 		}
 	}
+	//checking if sensor is in the same subnet of assets and is reachable
+	if _, hit := assets[sensor]; !hit {
+		log.Println("[!] Providen sensor ip",sensor,"has not been scanned. That's fine but please make sure that host is reachable via SSH")
+		assets[sensor] = &Host{}
+	}
+	log.Println("[*] scanning host", sensor)
+	//Expecting sensor listening for SSH on std 22
+	//recheck sensor hostname in order to verify if ssh connection is working properly even if PTR for sensor has been discovered
+	assets[sensor].Hostname, err = sshRunUname(sensor, sensor_port, sensor_ssh_username, sensor_ssh_password)
+	assets[sensor].Port = sensor_port
+	check(err)
+	if (assets[sensor].Hostname == "") {
+		log.Println("[-] could not establish a connection in order to retrive sensor informations, program cannot continue.\n On Next run check for providen creds")
+		kill("ERR: COULD NOT CONNECT TO SENSOR")
+	}
 	//assets map now is ready for ssh config and ansible
-	sshConfig(assets, ssh_username)
-
+	log.Println("[*] Generating ssh config")
+	sshConfig(assets, ssh_username, sensor_ssh_username, sensor)
 	//now do all the ansible magic
+	log.Println("[*] Generating ansible inventory")
+	ansibleInventory(assets, sensor)
 }
 
-func check(e error) {
-	if e != nil {
-		log.Println(e)
-		panic(e)
+//retrive hostname for a providen ipv4 address
+func sshRunUname(ip string, port string, ssh_username string, ssh_password string) (hostname string,err error)  {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+    defer cancel()
+	scanner, err := nmap.NewScanner(
+		nmap.WithTargets(ip),
+		nmap.WithContext(ctx),
+		nmap.WithPorts(port),
+		nmap.WithScripts("./sbin/nmap/nse/ssh-run-uname"),
+		nmap.WithScriptArguments(
+			map[string]string{
+				"ssh-run.port": port,
+				"ssh-run.username": ssh_username,
+				"ssh-run.password": ssh_password,
+			}),
+	)
+	result, warnings, err := scanner.Run()
+	check(err)
+
+	if(result.Hosts != nil) {
+		if warnings != nil {
+			fmt.Printf("[!] \n %v", warnings)
+			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
+		}
+		nmap_hostname := result.Hosts[0].Ports[0].Scripts[0].Output
+		if(strings.Contains(nmap_hostname, "Authentication Failed")){
+			return "", nil
+		} else {
+			nmap_hostname = strings.Replace(nmap_hostname, "output:", "", -1)
+			nmap_hostname = strings.Replace(nmap_hostname, "\n", "", -1)
+			nmap_hostname = strings.Replace(nmap_hostname, "\r", "", -1)
+			nmap_hostname = strings.Replace(nmap_hostname, " ", "", -1)
+			nmap_hostname = strings.Split(nmap_hostname, ".")[0]
+			return nmap_hostname, nil
+		}
+	} else {
+		return "", errors.New("Could not retrive informations on this host")
 	}
 }
 
@@ -206,24 +236,32 @@ func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longit
 	log.Printf("[+] Alienvault Assets.csv generated in working dir. %d bytes written", bt)
 }
 
+func sshConfig(assets map[string]*Host, ssh_username string, sensor_ssh_username string, sensor string) {
+	usr, err := user.Current()
+	check(err)
+    home := usr.HomeDir
+	createDirIfNotExist(home+"/.ssh")
 
-//ssh config sshConfigGenerator
-// ansible Inventory
-//deploy
-func sshConfig(assets map[string]*Host, user string) {
+	//vars
+	bt := 0
+	f, err := os.Create(home+"/.ssh/config.test")
+	check(err)
+	defer f.Close()
+
 	for ip, host := range assets {
-		log.Println("[*] Generating ssh config")
-		//vars
-		bt := 0
-		f, err := os.Create("~/.ssh/config.test")
-		check(err)
-		defer f.Close()
 	   	bc, err := f.WriteString("Host "+host.Hostname+"\n")
 	   	bt += bc
 	   	check(err)
-	   	bc, err = f.WriteString("    User "+user+"\n")
-	   	bt += bc
-	   	check(err)
+		if ip == sensor {
+			bc, err = f.WriteString("    User "+sensor_ssh_username+"\n")
+		   	bt += bc
+		   	check(err)
+		} else {
+			bc, err = f.WriteString("    User "+ssh_username+"\n")
+		   	bt += bc
+		   	check(err)
+		}
+
 	   	bc, err = f.WriteString("    HostName "+ip+"\n")
 	   	bt += bc
 	   	check(err)
@@ -233,15 +271,53 @@ func sshConfig(assets map[string]*Host, user string) {
 	   	bc, err = f.WriteString("\n")
 	   	bt += bc
 	   	check(err)
-		f.Sync()
-		log.Println("[+] SSH config generated according to scanned hosts")
 	}
+	f.Sync()
+	log.Printf("[+] SSH config generated %d bytes written", bt)
+}
+
+func createDirIfNotExist(dir string) {
+      if _, err := os.Stat(dir); os.IsNotExist(err) {
+              err = os.MkdirAll(dir, 0700)
+              if err != nil {
+                      panic(err)
+              }
+      }
 }
 
 func ansibleInventory(assets map[string]*Host, sensor string) {
 	bt := 0
-	f, err := os.Create("~/.ssh/config.test")
-	if siem, hit := assets["foo"]; hit {
-
+	f, err := os.Create("./dc/auto/Inventory")
+	check(err)
+	defer f.Close()
+	bc, err := f.WriteString("[sensor]\n")
+	bt += bc
+	check(err)
+	bc, err = f.WriteString(assets[sensor].Hostname+"\n\n")
+	bt += bc
+	check(err)
+	bc, err = f.WriteString("[assets]\n")
+	bt += bc
+	check(err)
+	for ip, host := range assets {
+		if ip != sensor {
+			bc, err := f.WriteString(host.Hostname)
+			bt += bc
+			check(err)
+		}
 	}
+	f.Sync()
+	log.Printf("[+] Ansible inventory generated %d bytes written", bt)
+}
+
+func check(e error) {
+	if e != nil {
+		log.Println(e)
+		panic(e)
+	}
+}
+
+func kill(reason string) {
+	fmt.Println(reason)
+	os.Exit(0)
 }
