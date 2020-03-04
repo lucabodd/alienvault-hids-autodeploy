@@ -17,9 +17,6 @@ Runs uname -r on defined target using providen credentials.
 -- |   output:
 -- |_   machine-hostname
 --
--- @xmloutput
--- <elem key="output">total 91\x0D&#xa;drwxr-xr-x   2 root root  4096 Jun  5 11:56 bin\x0D&#xa;drwxr-xr-x   4 root root  3072 Jun  5 12:42 boot\x0D&#xa;drwxrwxr-x   2 root root  4096 Jun 22  2017 cdrom\x0D&#xa;drwxr-xr-x  20 root root  4060 Jun 23 10:26 dev\x0D&#xa;drwxr-xr-x 127 root root 12288 Jun  5 11:56 etc\x0D&#xa;drwxr-xr-x   3 root root  4096 Jun 22  2017 home\x0D&#xa;....\x0D&#xa;drwxr-xr-x  13 root root  4096 Jul 20  2016 var\x0D&#xa;</elem>
---
 -- @args ssh-run.username    Username to authenticate as
 -- @args ssh-run.password    Password to use if using password authentication
 -- @args ssh-run.privatekey    Privatekeyfile to use if using publickey authentication
