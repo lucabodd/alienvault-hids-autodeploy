@@ -1,0 +1,8 @@
+---
+- hosts: all
+  tasks:
+  - name: Remove public deploy_temporary_key_2048
+    lineinfile:
+      path: ~/.ssh/authorized_keys
+      state: absent
+      regexp: 'deploy_temporary_key_2048'

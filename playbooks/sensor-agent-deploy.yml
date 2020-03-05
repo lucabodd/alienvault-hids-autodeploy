@@ -13,32 +13,12 @@
 #
 #Agent added.
 ---
-- hosts: debian,openbsd,!siem
-  become: true
+- hosts: sensor
   tasks:
-  - name: "Scanning network to check host with sleepy agents"
-    stat:
-      path: /var/ossec/bin/ossec-control
-    register: ossec_stat
-
-  - name: "Checking ossec agent status"
-    shell: "echo '{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }},{{ ansible_hostname }}' >> ../../roles/hids-remote-agent-deploy/files/Agents.list"
-    delegate_to: localhost
-    become: false
-    when: ossec_stat.stat.exists|bool == True
-
-- hosts: siem
-  tasks:
-  - name: "shipping generated Agents.list file to alienvault"
+  - name: "shipping Agents.list file to alienvault"
     copy:
-      src: ../../roles/hids-remote-agent-deploy/files/Agents.list
+      src: ../roles/sensor-agent-deploy/files/Agents.list
       dest: /dev/shm/Agents.list
-
-  - name: "Deleting local Agents.list file"
-    file:
-      state: absent
-      path: ../../roles/hids-remote-agent-deploy/files/Agents.list
-    delegate_to: localhost
 
   - name: "Bulk importing agents using the generated Agents.list files"
     shell: "/var/ossec/bin/manage_agents -f /dev/shm/Agents.list | grep ID | awk -F ':' '{ print $2 }'"
@@ -69,7 +49,7 @@
   - name: "restarting ossec hids"
     command: /var/ossec/bin/ossec-control restart
 
-- hosts: siem
+- hosts: sensor
   tasks:
   - name: "restarting hids on Alienvault"
     shell: "/var/ossec/bin/ossec-control restart"

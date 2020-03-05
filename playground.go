@@ -8,19 +8,30 @@ import (
     "encoding/pem"
     "fmt"
     "golang.org/x/crypto/ssh"
-    //ansibler "github.com/apenella/go-ansible"
+    ansibler "github.com/apenella/go-ansible"
     //"github.com/tidwall/gjson"
-    "strings"
-    //"bytes"
+    "bytes"
     "errors"
 
-    "syscall"
-    "bufio"
-    "golang.org/x/crypto/ssh/terminal"
 )
 func main() {
-    credentials("Username: ", "Password: ")
+    log.Println("[*] cleaning up files")
+	ansiblePlaybookConnectionOptions := &ansibler.AnsiblePlaybookConnectionOptions{}
+    ansiblePlaybookOptions := &ansibler.AnsiblePlaybookOptions{
+        Inventory: "./inventory/auto",
+    }
 
+    stdout_buf := new(bytes.Buffer)
+    playbook := &ansibler.AnsiblePlaybookCmd{
+        Playbook:          "./playbooks/remove-ssh-id.yml",
+        ConnectionOptions: ansiblePlaybookConnectionOptions,
+        Options:           ansiblePlaybookOptions,
+        ExecPrefix:        "",
+        Writer:				stdout_buf,
+    }
+    _ = playbook.Run()
+    stdout := stdout_buf.String()
+    fmt.Println(stdout)
 }
 
 

@@ -215,6 +215,57 @@ func main() {
 			delete(assets, ip)
 		}
 	}
+	//refreshing ansible inventory according to deployed agents and write all deployed agents list
+	ansibleInventory(assets, sensor)
+	alienvaultAgents(assets, sensor)
+	//ossec-hids deploy
+	log.Println("[*] Adding deployed Agents to sensor and export keys")
+	ansiblePlaybookConnectionOptions = &ansibler.AnsiblePlaybookConnectionOptions{}
+    ansiblePlaybookOptions = &ansibler.AnsiblePlaybookOptions{
+        Inventory: "./inventory/auto",
+    }
+
+    stdout_buf = new(bytes.Buffer)
+    playbook = &ansibler.AnsiblePlaybookCmd{
+        Playbook:          "./playbooks/sensor-agent-deploy.yml",
+        ConnectionOptions: ansiblePlaybookConnectionOptions,
+        Options:           ansiblePlaybookOptions,
+        ExecPrefix:        "",
+        Writer:				stdout_buf,
+    }
+    _ = playbook.Run()
+    stdout = stdout_buf.String()
+    stdout = strings.Replace(stdout, "=>", "", -1)
+	ansible_host_stats_failures := gjson.Get(stdout, "stats."+assets[sensor].Hostname+".failures")
+	ansible_host_stats_unreachable := gjson.Get(stdout, "stats."+assets[sensor].Hostname+".unreachable")
+	errors := ansible_host_stats_failures.Int()
+	unreachable := ansible_host_stats_unreachable.Int()
+	if errors > 0 || unreachable > 0 {
+		fmt.Println("[-] Error occurred while adding deployed Agents to alienvault sensor")
+		kill("FATAL: could not export Agents keys from sensor")
+	}
+
+	log.Println("[*] cleaning up files")
+	ansiblePlaybookConnectionOptions = &ansibler.AnsiblePlaybookConnectionOptions{}
+    ansiblePlaybookOptions = &ansibler.AnsiblePlaybookOptions{
+        Inventory: "./inventory/auto",
+    }
+
+    stdout_buf = new(bytes.Buffer)
+    playbook = &ansibler.AnsiblePlaybookCmd{
+        Playbook:          "./playbooks/remove-ssh-id.yml",
+        ConnectionOptions: ansiblePlaybookConnectionOptions,
+        Options:           ansiblePlaybookOptions,
+        ExecPrefix:        "",
+        Writer:				stdout_buf,
+    }
+    _ = playbook.Run()
+	err = os.Remove("./deploy_temporary_key_2048")
+	check(err)
+	err = os.Remove("./inventory/auto")
+	check(err)
+	err = os.Remove("./roles/sensor-agent-deploy/files/Agents.list")
+	check(err)
 	log.Println("[+] Done! deploy completed successfully, please consider the exceptions above.")
 }
 
@@ -346,6 +397,23 @@ func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longit
 	log.Printf("[+] Alienvault Assets.csv generated in working dir. %d bytes written", bt)
 }
 
+func alienvaultAgents(assets map[string]*Host, sensor string) {
+	log.Println("[*] Generating Alienvault Agents.list")
+	bt := 0
+	f, err := os.Create("./roles/sensor-agent-deploy/files/Agents.list")
+	check(err)
+	defer f.Close()
+	for ip, host := range assets {
+		if ip != sensor {
+	   		bc, err := f.WriteString(ip+","+host.Hostname+"\n")
+			bt += bc
+	   		check(err)
+		}
+	}
+	f.Sync()
+	log.Printf("[+] Alienvault Agents.list generated. %d bytes written", bt)
+}
+
 func makeSSHKeyPair(privateKeyPath string)  (string, error) {
     privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
     check(err)
@@ -363,7 +431,8 @@ func makeSSHKeyPair(privateKeyPath string)  (string, error) {
     // generate and write public key
     pub, err := ssh.NewPublicKey(&privateKey.PublicKey)
     check(err)
-    return string(ssh.MarshalAuthorizedKey(pub)),nil
+	key := strings.Replace(string(ssh.MarshalAuthorizedKey(pub)), "\n", " deploy_temporary_key_2048\n", -1)
+    return key ,nil
 }
 
 func sshConfig(assets map[string]*Host, ssh_username string, sensor_ssh_username string, sensor string) {
