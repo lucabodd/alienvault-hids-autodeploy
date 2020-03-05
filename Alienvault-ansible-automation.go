@@ -1,11 +1,16 @@
 package main
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/rand"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"os"
 	"os/user"
 	"fmt"
+	"golang.org/x/crypto/ssh"
     "time"
     "context"
 	"io/ioutil"
@@ -113,20 +118,26 @@ func main() {
 		}
 	}
 
-	// deleting hosts with undefined hostname PTR&SSH fail
+	// deleting hosts with undefined PTR & SSH connection fail
 	for ip, host := range assets {
-		if host.Port == "" && host.Hostname == "" {
-			delete(assets, ip)
-			log.Println("[-] Cannot determine hostname of", ip, "PTR Query returns null and SSH is not listening on specified ports. Escluding",ip,"host from Assets.csv")
+		if host.Hostname == "" {
+			if host.Port == "" {
+				log.Println("[-] Cannot determine hostname of", ip, "PTR Query returns null and SSH is not listening on specified ports. Escluding",ip,"host from Assets.csv")
+				delete(assets, ip)
+			}
+			if host.Port != "" {
+				log.Println("[-] Cannot connect to", ip, "via SSH, service is listening on provided ports but cannot login. Escluding",ip,"host from hids-deploy")
+				delete(assets, ip)
+			}
 		}
 	}
 	// generate .csv that needs to be imported in alienvault
 	alienvaultAssets(assets, latitude, longitude)
-	// deleting hosts that could not be managed via ssh
+	// deleting hosts wiyh defined PTR & closed ssh
 	for ip, host := range assets {
-		if host.Hostname == "" {
+		if host.Port == "" {
+			log.Println("[-] Altrough PTR is defined cannot connect to", ip, "via SSH, service is not listening on provided ports. Escluding",ip,"host from hids-deploy")
 			delete(assets, ip)
-			log.Println("[-] SSH is listening on", ip, "but connection cannot be established. Escluding host from hids-deploy")
 		}
 	}
 	//checking if sensor is in the same subnet of assets and is reachable
@@ -151,10 +162,26 @@ func main() {
 	log.Println("[*] Generating ansible inventory")
 	if !no_copy_id {
 		ansibleInventory(assets, sensor)
-		//run nse
+		pubKey, err := makeSSHKeyPair("./deploy_temporary_key_4096")
+	    check(err)
+		for ip, host := range assets {
+			status := ""
+			if ip != sensor {
+				status, err = sshCopyId(ip, host.Port, ssh_username, ssh_password, pubKey)
+			} else {
+				status, err = sshCopyId(ip, host.Port, sensor_ssh_username, sensor_ssh_password, pubKey)
+			}
+			check(err)
+			if status == "" {
+				log.Println("[-] Cannot copy public key due to login failure. Escluding",host.Hostname,"from hids-deploy")
+				delete(assets, ip)
+			}
+		}
 	} else {
 		ansibleUnsafeInventory(assets, ssh_username, ssh_password, sensor_ssh_username, sensor_ssh_password, sensor)
 	}
+	
+	//ossec-hids deploy
 }
 
 //retrive hostname for a providen ipv4 address
@@ -191,6 +218,47 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 			nmap_hostname = strings.Replace(nmap_hostname, " ", "", -1)
 			nmap_hostname = strings.Split(nmap_hostname, ".")[0]
 			return nmap_hostname, nil
+		}
+	} else {
+		return "", errors.New("Could not retrive informations on this host")
+	}
+}
+
+//retrive hostname for a providen ipv4 address
+func sshCopyId(ip string, port string, ssh_username string, ssh_password string, pubKey string) (status string,err error)  {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+    defer cancel()
+	scanner, err := nmap.NewScanner(
+		nmap.WithTargets(ip),
+		nmap.WithContext(ctx),
+		nmap.WithPorts(port),
+		nmap.WithScripts("./sbin/nmap/nse/ssh-copy-id"),
+		nmap.WithScriptArguments(
+			map[string]string{
+				"ssh-run.port": port,
+				"ssh-run.username": ssh_username,
+				"ssh-run.password": ssh_password,
+				"ssh-run.id": pubKey,
+			}),
+	)
+	result, warnings, err := scanner.Run()
+	check(err)
+
+	if(result.Hosts != nil) {
+		if warnings != nil {
+			fmt.Printf("[!] \n %v", warnings)
+			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
+		}
+		nmap_stat := result.Hosts[0].Ports[0].Scripts[0].Output
+		if(strings.Contains(nmap_stat, "Authentication Failed")){
+			return "", nil
+		} else {
+			nmap_stat = strings.Replace(nmap_stat, "output:", "", -1)
+			nmap_stat = strings.Replace(nmap_stat, "\n", "", -1)
+			nmap_stat = strings.Replace(nmap_stat, "\r", "", -1)
+			nmap_stat = strings.Replace(nmap_stat, "  ", "", -1)
+			nmap_stat = strings.Split(nmap_stat, ".")[0]
+			return nmap_stat, nil
 		}
 	} else {
 		return "", errors.New("Could not retrive informations on this host")
@@ -242,6 +310,26 @@ func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longit
 	}
 	f.Sync()
 	log.Printf("[+] Alienvault Assets.csv generated in working dir. %d bytes written", bt)
+}
+
+func makeSSHKeyPair(privateKeyPath string)  (string, error) {
+    privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+    check(err)
+
+    // generate and write private key as PEM
+    privateKeyFile, err := os.Create(privateKeyPath)
+    defer privateKeyFile.Close()
+    check(err)
+	err = os.Chmod(privateKeyPath, 0600)
+	check(err)
+    privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+    err = pem.Encode(privateKeyFile, privateKeyPEM)
+    check(err)
+
+    // generate and write public key
+    pub, err := ssh.NewPublicKey(&privateKey.PublicKey)
+    check(err)
+    return string(ssh.MarshalAuthorizedKey(pub)),nil
 }
 
 func sshConfig(assets map[string]*Host, ssh_username string, sensor_ssh_username string, sensor string) {

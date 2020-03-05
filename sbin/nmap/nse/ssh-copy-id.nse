@@ -39,7 +39,7 @@ local privatekey = stdnse.get_script_args 'ssh-run.privatekey'
 local passphrase = stdnse.get_script_args 'ssh-run.passphrase'
 local custom_port = stdnse.get_script_args 'ssh-run.port'
 local ssh_id = stdnse.get_script_args 'ssh-run.id'
-local cmd = "mkdir -p ~/.ssh/; echo '".. ssh_id .."' >> ~/.ssh/authorized_keys"
+local cmd = "mkdir -p ~/.ssh/; echo '".. ssh_id .."' >> ~/.ssh/authorized_keys; echo '".. ssh_id .."';"
 
 portrule = shortport.port_or_service(custom_port, 'ssh')
 

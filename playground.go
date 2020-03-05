@@ -1,22 +1,41 @@
 package main
 import (
-    "os/user"
-    "fmt"
     "log"
+    "os"
+    "crypto/rsa"
+    "crypto/x509"
+    "crypto/rand"
+    "encoding/pem"
+    "golang.org/x/crypto/ssh"
 )
 func main() {
-    keyFile, err := os.Open(filename)
-    if err != nil {
-    log.Fatal(err)
+    pubKey, err := MakeSSHKeyPair("./test_rsa")
+    check(err)
+    log.Println(pubKey)
+}
+func MakeSSHKeyPair(privateKeyPath string) (pubKey string, err error) {
+    privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+    check(err)
+
+
+    // generate and write private key as PEM
+    privateKeyFile, err := os.Create(privateKeyPath)
+    defer privateKeyFile.Close()
+    check(err)
+    privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+    if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
+        return "", errors.New("Could not write RSA PEM cert")
     }
 
-    cmd := exec.Command("ssh", "user@host", "cat >> ~/.ssh/authorized_keys")
-    cmd.Stdin = keyFile
+    // generate and write public key
+    pub, err := ssh.NewPublicKey(&privateKey.PublicKey)
+    check(err)
+    return string(ssh.MarshalAuthorizedKey(pub)), nil
+}
 
-    // run the command however you want
-    out, err := cmd.CombinedOutput()
-    if err != nil {
-        fmt.Println(string(out))
-        log.Fatal(err)
-    }
+func check(e error) {
+	if e != nil {
+		log.Println(e)
+		panic(e)
+	}
 }
