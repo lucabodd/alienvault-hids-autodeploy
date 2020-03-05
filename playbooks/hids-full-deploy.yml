@@ -1,3 +1,0 @@
----
-- import_playbook: hids-deploy.yml
-- import_playbook: hids-remote-agent-deploy.yml

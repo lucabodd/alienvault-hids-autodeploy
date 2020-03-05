@@ -34,6 +34,7 @@ func main() {
 	//Ansible setup env
 	os.Setenv("ANSIBLE_STDOUT_CALLBACK", "json")
 	os.Setenv("ANSIBLE_HOST_KEY_CHECKING", "False")
+
 	//vars
 	var assets = make(map[string]*Host)
 	var subnet string
@@ -162,7 +163,7 @@ func main() {
 	log.Println("[*] Generating ansible inventory")
 	if !no_copy_id {
 		ansibleInventory(assets, sensor)
-		pubKey, err := makeSSHKeyPair("./deploy_temporary_key_4096")
+		pubKey, err := makeSSHKeyPair("./deploy_temporary_key_2048")
 	    check(err)
 		for ip, host := range assets {
 			status := ""
@@ -180,7 +181,7 @@ func main() {
 	} else {
 		ansibleUnsafeInventory(assets, ssh_username, ssh_password, sensor_ssh_username, sensor_ssh_password, sensor)
 	}
-	
+
 	//ossec-hids deploy
 }
 
@@ -383,7 +384,7 @@ func createDirIfNotExist(dir string) {
 
 func ansibleInventory(assets map[string]*Host, sensor string) {
 	bt := 0
-	f, err := os.Create("./dc/auto/inventory")
+	f, err := os.Create("./inventory/auto")
 	check(err)
 	defer f.Close()
 	bc, err := f.WriteString("[sensor]\n")
@@ -408,7 +409,7 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
 
 func ansibleUnsafeInventory(assets map[string]*Host, ssh_username string, ssh_password string,sensor_ssh_username string, sensor_ssh_password string, sensor string) {
 	bt := 0
-	f, err := os.Create("./dc/auto/Inventory")
+	f, err := os.Create("./inventory/auto")
 	check(err)
 	defer f.Close()
 	bc, err := f.WriteString("[sensor]\n")

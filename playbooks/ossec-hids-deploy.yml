@@ -16,7 +16,18 @@
 ################################################################################
 
 ---
-- hosts: all
+- hosts: all,!sensor
   become: "{{ 'no' if inventory_hostname | regex_search('(vrt)') else 'yes' }}"
-  roles:
-          - ../../roles/hids-deploy
+
+  #Package installation
+  tasks:
+  - import_tasks: ../roles/ossec-hids-deploy/tasks/debian.yml
+    when: ansible_distribution == "Debian"
+
+  - import_tasks: ../roles/ossec-hids-deploy/tasks/openbsd.yml
+    when: ansible_system == "OpenBSD"
+
+  #HIDS installation
+  - import_tasks: ../roles/ossec-hids-deploy/tasks/install-hids.yml
+    vars:
+      hids_version: "{{ '3.4.0' if (ansible_system == 'OpenBSD') or ( ansible_distribution == 'Debian' and ansible_distribution_major_version|int >= 9) else '3.1.0' }}"

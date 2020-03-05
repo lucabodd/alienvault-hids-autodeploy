@@ -331,7 +331,7 @@ SetupLogs()
 ##########
 ConfigureClient()
 {
-    IP={{siem_ip}}
+    IP={{sensor}}
     HNAME=${USER_AGENT_SERVER_NAME}
 
     echo "<ossec_config>" > $NEWCONFIG
