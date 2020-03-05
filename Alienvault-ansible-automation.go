@@ -71,8 +71,8 @@ func main() {
 		kill("ERR: NOT ENAUGH ARGS")
 	}
 
-	ssh_username, ssh_password = credentials("Username for "+subnet+":", "Password: ")
-	sensor_ssh_username, sensor_ssh_password = credentials("Username for sensor "+sensor+":", "Password: ")
+	ssh_username, ssh_password = credentials("Username for "+subnet+" ↴", "Password ↴")
+	sensor_ssh_username, sensor_ssh_password = credentials("Username for sensor "+sensor+" ↴", "Password ↴")
 
     // setup nmap scanner in order to discover active hosts
 	log.Println("[*] Setting Up nmap NSE engine")
