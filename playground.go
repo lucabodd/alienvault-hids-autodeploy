@@ -6,13 +6,24 @@ import (
     "crypto/x509"
     "crypto/rand"
     "encoding/pem"
+    "fmt"
     "golang.org/x/crypto/ssh"
+    //ansibler "github.com/apenella/go-ansible"
+    //"github.com/tidwall/gjson"
+    "strings"
+    //"bytes"
+    "errors"
+
+    "syscall"
+    "bufio"
+    "golang.org/x/crypto/ssh/terminal"
 )
 func main() {
-    pubKey, err := MakeSSHKeyPair("./test_rsa")
-    check(err)
-    log.Println(pubKey)
+    credentials("Username: ", "Password: ")
+
 }
+
+
 func MakeSSHKeyPair(privateKeyPath string) (pubKey string, err error) {
     privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
     check(err)

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"bufio"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/rand"
@@ -11,18 +13,18 @@ import (
 	"os/user"
 	"fmt"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/terminal"
     "time"
     "context"
 	"io/ioutil"
-	//ansibler "github.com/apenella/go-ansible"
-	//"bytes"
-	//"strings"
+	ansibler "github.com/apenella/go-ansible"
 	"github.com/tidwall/gjson"
     "github.com/Ullaakut/nmap"
 	"log"
 	"net"
 	"net/http"
 	"strings"
+	"syscall"
 )
 
 type Host struct {
@@ -58,13 +60,9 @@ func main() {
 	flag.StringVar(&sensor_port, "sensor-port", "22","Sensor IP ossec-hids should connect to")
 	flag.BoolVar(&no_copy_id, "no-copy-id", false, "Copy ssh public key to scanned assets. Set to false if you store public keys not in ~/.ssh/authorized_keys. If this flag is set to false password will be written CLEARTEXT in ansible inventory file")
 	flag.BoolVar(&help, "help", false, "prints this help message")
-	//below vars must be replaced by prompt
-	flag.StringVar(&ssh_username, "u", "root", "Specify an username that has access to all machines")
-	flag.StringVar(&ssh_password, "password", "", "Set a password for defined username")
-	flag.StringVar(&sensor_ssh_username, "sensor-ssh-username", "root","Sensor IP ossec-hids should connect to")
-	flag.StringVar(&sensor_ssh_password, "sensor-ssh-password", "","Sensor IP ossec-hids should connect to")
+
     flag.Parse()
-	if subnet == "" || ssh_password == "" || sensor == "" || sensor_ssh_username == "" || help {
+	if subnet == "" || sensor == "" || help {
 		fmt.Println("[-] ERROR: Not enough arguments")
 		fmt.Println("Usage: Alienvault-ansible-automation [OPTIONS]")
 		fmt.Println("One ore more required flag has not been prodided.")
@@ -73,8 +71,11 @@ func main() {
 		kill("ERR: NOT ENAUGH ARGS")
 	}
 
+	ssh_username, ssh_password = credentials("Username for "+subnet+":", "Password: ")
+	sensor_ssh_username, sensor_ssh_password = credentials("Username for sensor "+sensor+":", "Password: ")
+
     // setup nmap scanner in order to discover active hosts
-	log.Println("[*] Setting Up NSE engine")
+	log.Println("[*] Setting Up nmap NSE engine")
 	log.Println("[*] Scanning network")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
     defer cancel()
@@ -183,6 +184,38 @@ func main() {
 	}
 
 	//ossec-hids deploy
+	log.Println("[*] Deploying ossec-hids to discovered assets")
+	ansiblePlaybookConnectionOptions := &ansibler.AnsiblePlaybookConnectionOptions{}
+    ansiblePlaybookOptions := &ansibler.AnsiblePlaybookOptions{
+        Inventory: "./inventory/auto",
+        ExtraVars: map[string]interface{}{
+            "sensor": sensor,
+        },
+    }
+
+    stdout_buf := new(bytes.Buffer)
+    playbook := &ansibler.AnsiblePlaybookCmd{
+        Playbook:          "./playbooks/ossec-hids-deploy.yml",
+        ConnectionOptions: ansiblePlaybookConnectionOptions,
+        Options:           ansiblePlaybookOptions,
+        ExecPrefix:        "",
+        Writer:				stdout_buf,
+    }
+    _ = playbook.Run()
+    stdout := stdout_buf.String()
+    stdout = strings.Replace(stdout, "=>", "", -1)
+    //json contains counts about status of tasks, attributes are: changed, failures, ignored, ok, rescued, skipped, unreachable
+	for ip, host := range assets {
+		ansible_host_stats_failures := gjson.Get(stdout, "stats."+host.Hostname+".failures")
+		ansible_host_stats_unreachable := gjson.Get(stdout, "stats."+host.Hostname+".unreachable")
+		errors := ansible_host_stats_failures.Int()
+		unreachable := ansible_host_stats_unreachable.Int()
+		if errors > 0 || unreachable > 0 {
+			fmt.Println("[-] Deploy failed on "+ host.Hostname+" skipping host")
+			delete(assets, ip)
+		}
+	}
+	log.Println("[+] Done! deploy completed successfully, please consider the exceptions above.")
 }
 
 //retrive hostname for a providen ipv4 address
@@ -430,6 +463,20 @@ func ansibleUnsafeInventory(assets map[string]*Host, ssh_username string, ssh_pa
 	}
 	f.Sync()
 	log.Printf("[+] Ansible UNSAFE inventory generated, %d bytes written", bt)
+}
+
+func credentials(prompt1 string, prompt2 string) (string, string) {
+    reader := bufio.NewReader(os.Stdin)
+
+    fmt.Println(prompt1)
+    username, _ := reader.ReadString('\n')
+
+    fmt.Println(prompt2)
+    bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+    check(err)
+    password := string(bytePassword)
+
+    return strings.TrimSpace(username), strings.TrimSpace(password)
 }
 
 func check(e error) {
