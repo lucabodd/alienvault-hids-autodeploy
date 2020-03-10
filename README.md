@@ -1,9 +1,9 @@
-# Alienvault-ansible-automation
+# Alienvault-hids-autodeploy
 
 Offering a golang program in order to automate ossec-hids deployment in an entire subnet (or single host), setting up an agent that allows hosts to connect to alienvault sensors via port 1514 (UDP) and send system events.
-Before starting the automatic deployment of ossec-hids you will need to tune up your alienvault USM appliance and install the requirements. The following Docs will guide you trough the process.
+Before starting the automatic deployment of ossec-hids you will need to tune up your alienvault USM appliance and install the golang requirements for "scanner" host. The following Docs will guide you trough the process.
 
-# Alienvault-hids-autodeploy setup
+## Scanner Setup
 In order to setup the scripts on your deploy "delegated" host you will just need to run:
 ```
 curl https://raw.githubusercontent.com/lucabodd/Alienvault-hids-autodeploy/master/setup/hids-autodeploy-install.sh | bash
@@ -13,16 +13,16 @@ this script will setup golang 1.13, install requirements and install golang bina
 Alienvault-hids-autodeploy [Options]
 ```
 
-# SIEM or Sensor Setup
+## SIEM or Sensor Setup
 In the following doc I will refer to "Siem or Sensor" as "sensor" as it didn't make any difference; in fact a Sensor is a subsystem of USM appliance
-## Sensor Automatic Setup
+### Sensor Automatic Setup
 For automatically setting up a sensor for deployment you will just need to log in via ssh, "jailbreak" the system (option 2) and run:
 ```
 curl https://raw.githubusercontent.com/lucabodd/Alienvault-hids-autodeploy/master/setup/sensor-setup.sh | bash
 ```
 If, for any reason, you don't trust running scripts, read the following "Sensor Manual Setup" section, as the script is doing the exact same thing.
 
-## Sensor Manual Setup
+### Sensor Manual Setup
 you need to "jailbreak" the system by default setting up .bashrc as follow.
 
 ```
