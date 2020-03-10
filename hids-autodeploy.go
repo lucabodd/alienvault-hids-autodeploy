@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"context"
+	"golang.org/x/net/context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
