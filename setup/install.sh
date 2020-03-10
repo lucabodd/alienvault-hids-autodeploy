@@ -9,3 +9,6 @@ echo "checking go installed version"
 go version
 echo "Environment settings"
 go env
+echo "Installing scanner ..."
+go get github.com/lucabodd/Alienvault-hids-autodeploy
+go install github.com/lucabodd/Alienvault-hids-autodeploy
