@@ -1,9 +1,10 @@
 # Alienvault-hids-autodeploy
 
-Offering a golang program in order to automate ossec-hids deployment in an entire subnet (or single host), setting up an agent that allows hosts to connect to alienvault sensors via port 1514 (UDP) and send system events.
+Offering a golang program to automate ossec-hids deployment on an entire subnet (or single host).
+The program will be setting up an agent that allows hosts to connect to alienvault sensors via port 1514 (UDP) and send system events.
 Before starting the automatic deployment of ossec-hids you will need to tune up your alienvault USM appliance and install the golang requirements for "scanner" host. The following Docs will guide you trough the process.
 
-## Scanner Setup
+## "Scanner" Setup
 In order to setup the scripts on your deploy "delegated" host you will just need to run:
 ```
 curl https://raw.githubusercontent.com/lucabodd/Alienvault-hids-autodeploy/master/setup/hids-autodeploy-install.sh | bash
