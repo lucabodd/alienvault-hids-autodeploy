@@ -3,7 +3,7 @@ wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 tar -xvf go1.13.3.linux-amd64.tar.gz
 mv go /usr/local
 echo 'export GOROOT=/usr/local/go' >> ~/.bashrc
-echo 'export GOPATH=$HOME/go/Alienvault-hids-deploy' >> ~/.bashrc
+echo 'export GOPATH=$HOME/go' >> ~/.bashrc
 echo 'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 echo "checking go installed version"

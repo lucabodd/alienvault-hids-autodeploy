@@ -75,8 +75,12 @@ func main() {
 	ssh_username, ssh_password = credentials("Username for "+subnet+" ↴", "Password ↴")
 	sensor_ssh_username, sensor_ssh_password = credentials("Username for sensor "+sensor+" ↴", "Password ↴")
 
-	run_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	gopath := os.Getenv("GOPATH")
+    if gopath == "" {
+        gopath = build.Default.GOPATH
+    }
 	check(err)
+	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
 
 	// setup nmap scanner in order to discover active hosts
 	log.Println("[*] Setting Up nmap NSE engine")
@@ -191,7 +195,7 @@ func main() {
 	log.Println("[*] Deploying ossec-hids to discovered assets")
 	ansiblePlaybookConnectionOptions := &ansibler.AnsiblePlaybookConnectionOptions{}
 	ansiblePlaybookOptions := &ansibler.AnsiblePlaybookOptions{
-		Inventory: run_dir+"/inventory/auto",
+		Inventory: datadir+"/inventory/auto",
 		ExtraVars: map[string]interface{}{
 			"sensor": sensor,
 		},
@@ -199,7 +203,7 @@ func main() {
 
 	stdout_buf := new(bytes.Buffer)
 	playbook := &ansibler.AnsiblePlaybookCmd{
-		Playbook:          run_dir+"/playbooks/ossec-hids-deploy.yml",
+		Playbook:          datadir+"/playbooks/ossec-hids-deploy.yml",
 		ConnectionOptions: ansiblePlaybookConnectionOptions,
 		Options:           ansiblePlaybookOptions,
 		ExecPrefix:        "",
@@ -226,12 +230,12 @@ func main() {
 	log.Println("[*] Adding deployed Agents to sensor and export keys")
 	ansiblePlaybookConnectionOptions = &ansibler.AnsiblePlaybookConnectionOptions{}
 	ansiblePlaybookOptions = &ansibler.AnsiblePlaybookOptions{
-		Inventory: run_dir+"/inventory/auto",
+		Inventory: datadir+"/inventory/auto",
 	}
 
 	stdout_buf = new(bytes.Buffer)
 	playbook = &ansibler.AnsiblePlaybookCmd{
-		Playbook:          run_dir+"/playbooks/sensor-agent-deploy.yml",
+		Playbook:          datadir+"/playbooks/sensor-agent-deploy.yml",
 		ConnectionOptions: ansiblePlaybookConnectionOptions,
 		Options:           ansiblePlaybookOptions,
 		ExecPrefix:        "",
@@ -252,12 +256,12 @@ func main() {
 	log.Println("[*] cleaning up files")
 	ansiblePlaybookConnectionOptions = &ansibler.AnsiblePlaybookConnectionOptions{}
 	ansiblePlaybookOptions = &ansibler.AnsiblePlaybookOptions{
-		Inventory: run_dir+"/inventory/auto",
+		Inventory: datadir+"/inventory/auto",
 	}
 
 	stdout_buf = new(bytes.Buffer)
 	playbook = &ansibler.AnsiblePlaybookCmd{
-		Playbook:          run_dir+"/playbooks/remove-ssh-id.yml",
+		Playbook:          datadir+"/playbooks/remove-ssh-id.yml",
 		ConnectionOptions: ansiblePlaybookConnectionOptions,
 		Options:           ansiblePlaybookOptions,
 		ExecPrefix:        "",
@@ -266,9 +270,9 @@ func main() {
 	_ = playbook.Run()
 	err = os.Remove("~/.ssh/deploy_temporary_key_2048")
 	check(err)
-	err = os.Remove(run_dir+"/inventory/auto")
+	err = os.Remove(datadir+"/inventory/auto")
 	check(err)
-	err = os.Remove(run_dir+"/roles/sensor-agent-deploy/files/Agents.list")
+	err = os.Remove(datadir+"/roles/sensor-agent-deploy/files/Agents.list")
 	check(err)
 	log.Println("[+] Done! deploy completed successfully, please consider the exceptions above.")
 }
@@ -277,13 +281,18 @@ func main() {
 func sshRunUname(ip string, port string, ssh_username string, ssh_password string) (hostname string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	run_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	gopath := os.Getenv("GOPATH")
+    if gopath == "" {
+        gopath = build.Default.GOPATH
+    }
+	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
+
 	check(err)
 	scanner, err := nmap.NewScanner(
 		nmap.WithTargets(ip),
 		nmap.WithContext(ctx),
 		nmap.WithPorts(port),
-		nmap.WithScripts(run_dir+"/sbin/nmap/nse/ssh-run-uname"),
+		nmap.WithScripts(datadir+"/sbin/nmap/nse/ssh-run-uname"),
 		nmap.WithScriptArguments(
 			map[string]string{
 				"ssh-run.port":     port,
@@ -319,13 +328,18 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 func sshCopyId(ip string, port string, ssh_username string, ssh_password string, pubKey string) (status string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	run_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	gopath := os.Getenv("GOPATH")
+    if gopath == "" {
+        gopath = build.Default.GOPATH
+    }
 	check(err)
+	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
+
 	scanner, err := nmap.NewScanner(
 		nmap.WithTargets(ip),
 		nmap.WithContext(ctx),
 		nmap.WithPorts(port),
-		nmap.WithScripts(run_dir+"/sbin/nmap/nse/ssh-copy-id"),
+		nmap.WithScripts(datadir+"/sbin/nmap/nse/ssh-copy-id"),
 		nmap.WithScriptArguments(
 			map[string]string{
 				"ssh-run.port":     port,
@@ -407,10 +421,15 @@ func alienvaultAssets(assets map[string]*Host, user_latitude string, user_longit
 
 func alienvaultAgents(assets map[string]*Host, sensor string) {
 	log.Println("[*] Generating Alienvault Agents.list")
-	run_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	gopath := os.Getenv("GOPATH")
+    if gopath == "" {
+        gopath = build.Default.GOPATH
+    }
 	check(err)
+	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
+
 	bt := 0
-	f, err := os.Create(run_dir+"/roles/sensor-agent-deploy/files/Agents.list")
+	f, err := os.Create(datadir+"/roles/sensor-agent-deploy/files/Agents.list")
 	check(err)
 	defer f.Close()
 	for ip, host := range assets {
@@ -496,9 +515,14 @@ func createDirIfNotExist(dir string) {
 
 func ansibleInventory(assets map[string]*Host, sensor string) {
 	bt := 0
-	run_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	gopath := os.Getenv("GOPATH")
+    if gopath == "" {
+        gopath = build.Default.GOPATH
+    }
 	check(err)
-	f, err := os.Create(run_dir+"/inventory/auto")
+	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
+
+	f, err := os.Create(datadir+"/inventory/auto")
 	check(err)
 	defer f.Close()
 	bc, err := f.WriteString("[sensor]\n")
@@ -523,9 +547,14 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
 
 func ansibleUnsafeInventory(assets map[string]*Host, ssh_username string, ssh_password string, sensor_ssh_username string, sensor_ssh_password string, sensor string) {
 	bt := 0
-	run_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	gopath := os.Getenv("GOPATH")
+    if gopath == "" {
+        gopath = build.Default.GOPATH
+    }
 	check(err)
-	f, err := os.Create(run_dir+"/inventory/auto")
+	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
+	
+	f, err := os.Create(datadir+"/inventory/auto")
 	check(err)
 	defer f.Close()
 	bc, err := f.WriteString("[sensor]\n")
