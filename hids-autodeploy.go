@@ -286,6 +286,9 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
     }
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
 
+	fmt.Println("ssh-run-uname",ip,port,ssh_username,ssh_password)
+	fmt.Println(datadir)
+
 	check(err)
 	scanner, err := nmap.NewScanner(
 		nmap.WithTargets(ip),
