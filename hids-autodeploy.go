@@ -285,10 +285,6 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
         gopath = build.Default.GOPATH
     }
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
-
-	fmt.Println("ssh-run-uname",ip,port,ssh_username,ssh_password)
-	fmt.Println(datadir)
-
 	check(err)
 	scanner, err := nmap.NewScanner(
 		nmap.WithTargets(ip),
@@ -310,8 +306,6 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 			fmt.Printf("[!] \n %v", warnings)
 			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
 		}
-		fmt.Printf("%+v", result)
-		kill("BREAK")
 		nmap_hostname := result.Hosts[0].Ports[0].Scripts[0].Output
 		if strings.Contains(nmap_hostname, "Authentication Failed") {
 			return "", nil
