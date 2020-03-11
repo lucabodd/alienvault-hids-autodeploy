@@ -5,6 +5,7 @@ mv go /usr/local
 echo 'export GOROOT=/usr/local/go' >> ~/.profile
 echo 'export GOPATH=$HOME/go/Alienvault-hids-deploy' >> ~/.profile
 echo 'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> ~/.profile
+source ~/.profile
 echo "checking go installed version"
 go version
 echo "Environment settings"
