@@ -1,12 +1,3 @@
-cd /tmp
-echo "installing nmap from sources"
-wget https://nmap.org/dist/nmap-7.80.tar.bz2
-bzip2 -cd nmap-7.80.tar.bz2 | tar xvf -
-cd /tmp/nmap-7.80
-./configure
-make
-make install
-cd /tmp
 wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 tar -xvf go1.13.3.linux-amd64.tar.gz
 mv go /usr/local
