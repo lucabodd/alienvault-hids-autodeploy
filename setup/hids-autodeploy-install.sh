@@ -2,10 +2,10 @@ cd /tmp
 wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 tar -xvf go1.13.3.linux-amd64.tar.gz
 mv go /usr/local
-echo 'export GOROOT=/usr/local/go' >> ~/.profile
-echo 'export GOPATH=$HOME/go/Alienvault-hids-deploy' >> ~/.profile
-echo 'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> ~/.profile
-source ~/.profile
+echo 'export GOROOT=/usr/local/go' >> ~/.bashrc
+echo 'export GOPATH=$HOME/go/Alienvault-hids-deploy' >> ~/.bashrc
+echo 'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
 echo "checking go installed version"
 go version
 echo "Environment settings"
