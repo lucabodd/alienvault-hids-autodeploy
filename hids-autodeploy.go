@@ -52,14 +52,14 @@ func main() {
 	var no_copy_id bool
 	var help bool
 
-	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
-	flag.StringVar(&ports, "p", "22", "Specify on wich ports SSH migt be listening on")
+	flag.BoolVar(&help, "help", false, "prints this help message")
 	flag.StringVar(&latitude, "site-lat", "", "Override latitude discovery for a site")
 	flag.StringVar(&longitude, "site-long", "", "Override longitude discovery for a site")
+	flag.BoolVar(&no_copy_id, "no-copy-id", false, "Copy ssh public key to scanned assets. Set to false if you store public keys not in ~/.ssh/authorized_keys. If this flag is set to false password will be written CLEARTEXT in ansible inventory file")
 	flag.StringVar(&sensor, "sensor", "", "Sensor IP ossec-hids should connect to")
 	flag.StringVar(&sensor_port, "sensor-port", "22", "Sensor IP ossec-hids should connect to")
-	flag.BoolVar(&no_copy_id, "no-copy-id", false, "Copy ssh public key to scanned assets. Set to false if you store public keys not in ~/.ssh/authorized_keys. If this flag is set to false password will be written CLEARTEXT in ansible inventory file")
-	flag.BoolVar(&help, "help", false, "prints this help message")
+	flag.StringVar(&ports, "p", "22", "Specify on wich ports SSH migt be listening on")
+	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
 
 	flag.Parse()
 	if subnet == "" || sensor == "" || help {
