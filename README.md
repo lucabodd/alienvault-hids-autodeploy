@@ -13,6 +13,7 @@ this script will setup golang 1.13, install requirements and install golang bina
 ```
 Alienvault-hids-autodeploy [Options]
 ```
+read documentation below for program usage examples.
 
 ## SIEM or Sensor Setup
 In the following doc I will refer to "Siem or Sensor" as "sensor" as it didn't make any difference; in fact a Sensor is a subsystem of USM appliance
@@ -75,3 +76,6 @@ add exec permissions
 ```
 chmod a+x /usr/local/bin/cluster-delete-agent
 ```
+
+## Usage
+the program can be configured with the following flags:

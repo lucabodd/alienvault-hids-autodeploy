@@ -64,7 +64,7 @@ func main() {
 	flag.Parse()
 	if subnet == "" || sensor == "" || help {
 		fmt.Println("[-] ERROR: Not enough arguments")
-		fmt.Println("Usage: Alienvault-ansible-automation [OPTIONS]")
+		fmt.Println("Usage: Alienvault-hids-deploy [OPTIONS]")
 		fmt.Println("One ore more required flag has not been prodided.")
 		fmt.Println("Note that using less flag than defined could lead program into errors (not required flags are site-*). \nOmit flags only if you are aware of what are you doin'")
 		flag.PrintDefaults()
