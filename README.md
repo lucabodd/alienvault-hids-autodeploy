@@ -3,9 +3,9 @@
 Offering a golang program to automate ossec-hids deployment on an entire subnet (or single host).
 The program will be setting up an agent that allows hosts to connect to alienvault sensors via port 1514 (UDP) and send system events.
 Before starting the automatic deployment of ossec-hids you will need to tune up your alienvault USM appliance and install the golang requirements for "scanner" host. The following Docs will guide you trough the process.
-To run this program you will need
+To run this program you will need:
 * nmap >= 7.7
-* go > 1.13 (installed by "scanner setup" script) 
+* go > 1.13 (installed by "scanner setup" script)
 
 ## "Scanner" Setup
 In order to setup the scripts on your deploy "delegated" host you will just need to run:
