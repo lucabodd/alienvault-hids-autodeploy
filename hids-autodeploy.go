@@ -14,6 +14,7 @@ import (
 	"github.com/Ullaakut/nmap"
 	ansibler "github.com/apenella/go-ansible"
 	"github.com/tidwall/gjson"
+	"go/build"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
@@ -22,7 +23,6 @@ import (
 	"net/http"
 	"os"
 	"os/user"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -79,7 +79,6 @@ func main() {
     if gopath == "" {
         gopath = build.Default.GOPATH
     }
-	check(err)
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
 
 	// setup nmap scanner in order to discover active hosts
@@ -332,7 +331,6 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
     if gopath == "" {
         gopath = build.Default.GOPATH
     }
-	check(err)
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
 
 	scanner, err := nmap.NewScanner(
@@ -425,7 +423,6 @@ func alienvaultAgents(assets map[string]*Host, sensor string) {
     if gopath == "" {
         gopath = build.Default.GOPATH
     }
-	check(err)
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
 
 	bt := 0
@@ -519,7 +516,6 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
     if gopath == "" {
         gopath = build.Default.GOPATH
     }
-	check(err)
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
 
 	f, err := os.Create(datadir+"/inventory/auto")
@@ -551,9 +547,8 @@ func ansibleUnsafeInventory(assets map[string]*Host, ssh_username string, ssh_pa
     if gopath == "" {
         gopath = build.Default.GOPATH
     }
-	check(err)
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
-	
+
 	f, err := os.Create(datadir+"/inventory/auto")
 	check(err)
 	defer f.Close()
