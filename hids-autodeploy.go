@@ -310,6 +310,8 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 			fmt.Printf("[!] \n %v", warnings)
 			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
 		}
+		fmt.Printf("%+v", result)
+		kill("BREAK")
 		nmap_hostname := result.Hosts[0].Ports[0].Scripts[0].Output
 		if strings.Contains(nmap_hostname, "Authentication Failed") {
 			return "", nil
