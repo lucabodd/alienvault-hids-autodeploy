@@ -14,3 +14,5 @@ echo "Installing scanner ..."
 go get github.com/lucabodd/Alienvault-hids-autodeploy
 go install github.com/lucabodd/Alienvault-hids-autodeploy
 echo "Done!"
+echo "installing required LUA libraryes"
+wget https://raw.githubusercontent.com/nmap/nmap/master/nselib/libssh2-utility.lua -O /usr/share/nmap/nselib/libssh2-utility.lua
