@@ -54,13 +54,13 @@ func main() {
 	var help bool
 
 	flag.BoolVar(&help, "help", false, "prints this help message")
-	flag.StringVar(&latitude, "site-lat", "", "Override latitude discovery for a site")
-	flag.StringVar(&longitude, "site-long", "", "Override longitude discovery for a site")
-	flag.BoolVar(&no_copy_id, "no-copy-id", false, "Copy ssh public key to scanned assets. Set to false if you store public keys not in ~/.ssh/authorized_keys. If this flag is set to false password will be written CLEARTEXT in ansible inventory file")
-	flag.StringVar(&sensor, "sensor-ip", "", "Sensor IP ossec-hids should connect to")
-	flag.StringVar(&sensor_port, "sensor-port", "22", "Sensor IP ossec-hids should connect to")
-	flag.StringVar(&ports, "p", "22", "Specify on wich ports SSH migt be listening on")
-	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet to be scanned")
+	flag.StringVar(&latitude, "site-lat", "", "Override geolocation latitude discovery for a site")
+	flag.StringVar(&longitude, "site-long", "", "Override geolocation longitude discovery for a site")
+	flag.BoolVar(&no_copy_id, "no-copy-id", false, "Copy ssh public key to scanned assets. Set this flag if you store RSA public keys not in ~/.ssh/authorized_keys. If this flag is set to false password will be written CLEARTEXT in ansible inventory file")
+	flag.StringVar(&sensor, "sensor-ip", "", "Sensor IP ossec-hids agents should connect to")
+	flag.StringVar(&sensor_port, "sensor-port", "22", "Sensor SSH port")
+	flag.StringVar(&ports, "p", "22", "Specify on which ports SSH might be listening on")
+	flag.StringVar(&subnet, "subnet-cidr", "", "Specify subnet/host CIDR where to install ossec-hids agent")
 
 	flag.Parse()
 	if subnet == "" || sensor == "" || help {

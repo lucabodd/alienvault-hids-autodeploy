@@ -81,4 +81,27 @@ chmod a+x /usr/local/bin/cluster-delete-agent
 ```
 
 ## Usage
-the program can be configured with the following flags:
+the program may run with the following flags:
+```
+Usage: Alienvault-hids-deploy [OPTIONS]
+One ore more required flag has not been prodided.
+Note that using less flag than defined could lead program into errors (not required flags are site-*).
+Omit flags only if you are aware of what are you doin'
+  -help
+    	prints this help message
+  -no-copy-id
+    	Copy ssh public key to scanned assets. Set this flag if you store RSA public keys not in ~/.ssh/authorized_keys. If this flag is set to false password will be written CLEARTEXT in ansible inventory file
+  -p string
+    	Specify on which ports SSH might be listening on (default "22")
+  -sensor-ip string
+    	Sensor IP ossec-hids agents should connect to
+  -sensor-port string
+    	Sensor SSH port (default "22")
+  -site-lat string
+    	Override geolocation latitude discovery for a site
+  -site-long string
+    	Override geolocation longitude discovery for a site
+  -subnet-cidr string
+    	Specify subnet/host CIDR where to install ossec-hids agent
+
+```
