@@ -594,5 +594,5 @@ func check(e error) {
 
 func kill(reason string) {
 	fmt.Println(reason)
-	os.Exit(0)
+	os.Exit(1)
 }
