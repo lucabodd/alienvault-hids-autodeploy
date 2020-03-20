@@ -1,0 +1,10 @@
+---
+# vars file for alienvault
+
+# golang role, took from https://galaxy.ansible.com/gantsign/golang
+
+# Go language SDK version number
+golang_version: "1.13"
+
+# Base installation directory the Go language SDK distribution
+golang_install_dir: "/usr/local/go/{{ golang_version }}"

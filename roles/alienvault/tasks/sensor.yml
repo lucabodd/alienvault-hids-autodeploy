@@ -1,0 +1,16 @@
+---
+- name: ciaone
+  debug:
+    msg: IMMA SENSOR
+
+- name: install bashrc
+  copy:
+    src: sensor_bashrc
+    dest: ~/.bashrc
+    backup: yes
+
+- name: install tool
+  copy:
+    src: cluster-delete-agent
+    dest: /usr/local/bin/cluster-delete-agent
+    mode: a+x

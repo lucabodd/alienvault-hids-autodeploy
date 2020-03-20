@@ -1,0 +1,7 @@
+---
+# tasks file for alienvault
+
+- name: infrastructure setup
+  include_tasks: '{{ node_type }}.yml'
+  tags:
+    - infra_setup

@@ -1,0 +1,40 @@
+---
+# scanner related tasks
+
+- name: set facts
+  set_fact:
+    _gopath: '{{ ansible_env.HOME }}/go'
+
+- name: include role
+  import_role:
+    name: gantsign.golang
+
+- name: GOROOT env var
+  loop:
+    - 'export GOROOT=/usr/local/go/{{ golang_version }}'
+    - 'export GOPATH={{ _gopath }}'
+    - 'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH'
+  lineinfile:
+    dest: ~/.bashrc
+    line: '{{ item }}'
+
+- name: create gopath
+  file:
+    path: '{{ _gopath }}'
+    state: directory
+
+- name: needed packages
+  loop:
+    - name: git
+    - name: nmap
+      state: latest
+  package:
+    name: '{{ item.name }}'
+    state: '{{ item.state | default("present") }}'
+
+- name: install scanner
+  command: >
+    /usr/local/go/{{ golang_version }}/bin/go
+    get github.com/lucabodd/Alienvault-hids-autodeploy
+  args:
+    creates: '{{ _gopath }}/bin/Alienvault-hids-autodeploy'

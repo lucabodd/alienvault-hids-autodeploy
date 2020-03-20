@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: 'Include alienvault'
+      include_role:
+        name: 'alienvault'
+      vars:
+        alienvault_scanner: true

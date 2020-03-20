@@ -1,0 +1,8 @@
+if [ "$#" -ne 1 ]; then
+	echo "Illegal number of parameters"
+	echo "You need to provide onli cluster name or hostname as parameter"
+fi
+for i in $(/var/ossec/bin/manage_agents -l | grep $1 | awk '{ print $2 }' | tr -d ','); do
+	/var/ossec/bin/manage_agents -r $i;
+done
+/var/ossec/bin/ossec-control restart;
