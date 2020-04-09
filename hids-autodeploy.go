@@ -474,7 +474,7 @@ func sshConfig(assets map[string]*Host, ssh_username string, sensor_ssh_username
 
 	//vars
 	bt := 0
-	f, err := os.Create(home + "/.ssh/config.test")
+	f, err := os.Create(home + "/.ssh/config")
 	check(err)
 	defer f.Close()
 
