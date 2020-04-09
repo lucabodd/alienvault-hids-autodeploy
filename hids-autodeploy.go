@@ -352,8 +352,7 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 	)
 	result, warnings, err := scanner.Run()
 	check(err)
-	fmt.Println("warn",warnings)
-	fmt.Println("err",err)
+	
 	fmt.Println("res",result)
 	fmt.Println("ip: ",ip)
 
