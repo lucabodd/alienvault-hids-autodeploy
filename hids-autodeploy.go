@@ -372,7 +372,8 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 			return nmap_stat, nil
 		}
 	} else {
-		return "", errors.New("Could not retrive informations on this host")
+		log.Println("[-] Could not ssh RSA key copy status, deployment might fail on this host")
+		return "unknown", nil
 	}
 }
 
