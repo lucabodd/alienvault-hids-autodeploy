@@ -355,7 +355,7 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 
 	fmt.Printf("%+v", result)
 
-	if result.Hosts != nil {
+	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
 		if warnings != nil {
 			fmt.Printf("[!] \n %v", warnings)
 			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
