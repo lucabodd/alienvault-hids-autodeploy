@@ -353,8 +353,6 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 	result, warnings, err := scanner.Run()
 	check(err)
 
-	fmt.Printf("%+v", result)
-
 	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
 		if warnings != nil {
 			fmt.Printf("[!] \n %v", warnings)
