@@ -37,6 +37,11 @@ func main() {
 	//Ansible setup env
 	os.Setenv("ANSIBLE_STDOUT_CALLBACK", "json")
 	os.Setenv("ANSIBLE_HOST_KEY_CHECKING", "False")
+	usr, err := user.Current()
+    if err != nil {
+        log.Fatal( err )
+    }
+    home := usr.HomeDir
 
 	//vars
 	var assets = make(map[string]*Host)
@@ -171,7 +176,7 @@ func main() {
 	log.Println("[*] Generating ansible inventory")
 	if !no_copy_id {
 		ansibleInventory(assets, sensor)
-		pubKey, err := makeSSHKeyPair("~/.ssh/deploy_temporary_key_2048")
+		pubKey, err := makeSSHKeyPair(home+"/.ssh/deploy_temporary_key_2048")
 		check(err)
 		for ip, host := range assets {
 			status := ""
@@ -267,7 +272,7 @@ func main() {
 		Writer:            stdout_buf,
 	}
 	_ = playbook.Run()
-	err = os.Remove("~/.ssh/deploy_temporary_key_2048")
+	err = os.Remove(home+"/.ssh/deploy_temporary_key_2048")
 	check(err)
 	err = os.Remove(datadir+"/inventory/auto")
 	check(err)
