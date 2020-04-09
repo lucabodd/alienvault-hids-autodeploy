@@ -214,6 +214,7 @@ func main() {
 	_ = playbook.Run()
 	stdout := stdout_buf.String()
 	stdout = strings.Replace(stdout, "=>", "", -1)
+	fmt.Println(stdout)
 	//json contains counts about status of tasks, attributes are: changed, failures, ignored, ok, rescued, skipped, unreachable
 	for ip, host := range assets {
 		ansible_host_stats_failures := gjson.Get(stdout, "stats."+host.Hostname+".failures")
