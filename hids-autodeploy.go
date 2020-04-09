@@ -38,9 +38,7 @@ func main() {
 	os.Setenv("ANSIBLE_STDOUT_CALLBACK", "json")
 	os.Setenv("ANSIBLE_HOST_KEY_CHECKING", "False")
 	usr, err := user.Current()
-    if err != nil {
-        log.Fatal( err )
-    }
+    check(err)
     home := usr.HomeDir
 
 	//vars
@@ -319,6 +317,7 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 			nmap_hostname = strings.Replace(nmap_hostname, "\n", "", -1)
 			nmap_hostname = strings.Replace(nmap_hostname, "\r", "", -1)
 			nmap_hostname = strings.Replace(nmap_hostname, " ", "", -1)
+			nmap_hostname = strings.Replace(nmap_hostname, "\\x0D", "", -1)
 			nmap_hostname = strings.Split(nmap_hostname, ".")[0]
 			return nmap_hostname, nil
 		}
@@ -522,6 +521,9 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
         gopath = build.Default.GOPATH
     }
 	datadir := gopath+"/src/github.com/lucabodd/Alienvault-hids-autodeploy"
+	usr, err := user.Current()
+	check(err)
+	home := usr.HomeDir
 
 	f, err := os.Create(datadir+"/inventory/auto")
 	check(err)
@@ -529,7 +531,7 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
 	bc, err := f.WriteString("[sensor]\n")
 	bt += bc
 	check(err)
-	bc, err = f.WriteString(assets[sensor].Hostname + "\n\n")
+	bc, err = f.WriteString(assets[sensor].Hostname + " ansible_ssh_private_key_file="+home+"/.ssh/deploy_temporary_key_2048 \n\n")
 	bt += bc
 	check(err)
 	bc, err = f.WriteString("[assets]\n")
@@ -537,7 +539,7 @@ func ansibleInventory(assets map[string]*Host, sensor string) {
 	check(err)
 	for ip, host := range assets {
 		if ip != sensor {
-			bc, err := f.WriteString(host.Hostname + "\n")
+			bc, err := f.WriteString(host.Hostname + " ansible_ssh_private_key_file="+home+"/.ssh/deploy_temporary_key_2048\n")
 			bt += bc
 			check(err)
 		}
