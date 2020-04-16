@@ -305,7 +305,7 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 	result, warnings, err := scanner.Run()
 	check(err)
 
-	if result.Hosts != nil {
+	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
 		if warnings != nil {
 			fmt.Printf("[!] \n %v", warnings)
 			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
@@ -323,7 +323,8 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 			return nmap_hostname, nil
 		}
 	} else {
-		return "", errors.New("Could not retrive informations on this host")
+		log.Println("[-] Could not ssh RSA key copy status, deployment might fail on this host")
+		return "unknown", nil
 	}
 }
 
