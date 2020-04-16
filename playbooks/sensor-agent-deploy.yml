@@ -17,7 +17,7 @@
   tasks:
   - name: "shipping Agents.list file to alienvault"
     copy:
-      src: ../roles/sensor-agent-deploy/files/Agents.list
+      src: "{{agets_list}}"
       dest: /dev/shm/Agents.list
 
   - name: "Bulk importing agents using the generated Agents.list files"
@@ -57,4 +57,4 @@
   - name: "Cleaning up tempfs"
     file:
       state: absent
-      path: /dev/shm/Assets.csv
+      path: /dev/shm/Agents.list

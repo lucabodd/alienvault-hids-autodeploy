@@ -234,6 +234,9 @@ func main() {
 	ansiblePlaybookConnectionOptions = &ansibler.AnsiblePlaybookConnectionOptions{}
 	ansiblePlaybookOptions = &ansibler.AnsiblePlaybookOptions{
 		Inventory: datadir+"/inventory/auto",
+		ExtraVars: map[string]interface{}{
+			"agets_list": datadir+"/roles/sensor-agent-deploy/files/Agents.list",
+		},
 	}
 
 	stdout_buf = new(bytes.Buffer)
