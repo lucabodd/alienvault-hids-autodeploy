@@ -17,7 +17,7 @@
   tasks:
   - name: "shipping Agents.list file to alienvault"
     copy:
-      src: "{{agets_list}}"
+      src: ../roles/sensor-agent-deploy/files/Agents.list
       dest: /dev/shm/Agents.list
 
   - name: "Bulk importing agents using the generated Agents.list files"
@@ -54,7 +54,7 @@
   - name: "restarting hids on Alienvault"
     shell: "/var/ossec/bin/ossec-control restart"
 
- # - name: "Cleaning up tempfs"
-#    file:
-#      state: absent
-#      path: /dev/shm/Agents.list
+  - name: "Cleaning up tempfs"
+    file:
+      state: absent
+      path: /dev/shm/Agents.list
