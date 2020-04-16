@@ -6,6 +6,7 @@ Before starting the automatic deployment of ossec-hids you will need to tune up 
 To run this program you will need:
 * nmap >= 7.7
 * go > 1.13 (installed by "scanner setup" script)
+* ansible >= 2.7
 
 ## "Scanner" Setup
 In order to setup the scripts on your deploy "delegated" host you will just need to run:
