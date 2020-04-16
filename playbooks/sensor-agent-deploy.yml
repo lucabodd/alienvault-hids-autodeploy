@@ -54,7 +54,7 @@
   - name: "restarting hids on Alienvault"
     shell: "/var/ossec/bin/ossec-control restart"
 
-  - name: "Cleaning up tempfs"
-    file:
-      state: absent
-      path: /dev/shm/Agents.list
+ # - name: "Cleaning up tempfs"
+#    file:
+#      state: absent
+#      path: /dev/shm/Agents.list
