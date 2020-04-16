@@ -4,7 +4,6 @@ mv go /usr/local
 echo 'export GOROOT=/usr/local/go' >> ~/.bashrc
 echo 'export GOPATH=$HOME/go' >> ~/.bashrc
 echo 'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
 echo "checking go installed version"
 go version
 echo "Environment settings"
@@ -13,3 +12,4 @@ echo "Installing scanner ..."
 go get github.com/lucabodd/Alienvault-hids-autodeploy
 go install github.com/lucabodd/Alienvault-hids-autodeploy
 echo "Done!"
+echo "please 'source ~/.bashrc' "
