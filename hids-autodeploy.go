@@ -250,6 +250,7 @@ func main() {
 	_ = playbook.Run()
 	stdout = stdout_buf.String()
 	stdout = strings.Replace(stdout, "=>", "", -1)
+	fmt.Println(stdout)
 	ansible_host_stats_failures := gjson.Get(stdout, "stats."+assets[sensor].Hostname+".failures")
 	ansible_host_stats_unreachable := gjson.Get(stdout, "stats."+assets[sensor].Hostname+".unreachable")
 	errors := ansible_host_stats_failures.Int()
