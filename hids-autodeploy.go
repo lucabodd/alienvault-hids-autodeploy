@@ -308,7 +308,7 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 	fmt.Println(result)
 	time.Sleep(12000 * time.Millisecond)
 	check(err)
-	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
+	if val, ok := result.Hosts[0].Ports[0].Scripts; ok {
 		if warnings != nil {
 			fmt.Printf("[!] \n %v", warnings)
 			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
@@ -357,7 +357,7 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 	result, warnings, err := scanner.Run()
 	check(err)
 
-	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
+	if val, ok := result.Hosts[0].Ports[0].Scripts; ok {
 		if warnings != nil {
 			fmt.Printf("[!] \n %v", warnings)
 			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
