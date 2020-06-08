@@ -253,6 +253,7 @@ func main() {
 	unreachable := ansible_host_stats_unreachable.Int()
 	if errors > 0 || unreachable > 0 {
 		fmt.Println("[-] Error occurred while adding deployed Agents to alienvault sensor")
+		fmt.Println(stdout)
 		kill("FATAL: could not export Agents keys from sensor")
 	}
 
@@ -371,7 +372,7 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 			return nmap_stat, nil
 		}
 	} else {
-		log.Println("[-] Could not ssh RSA key copy status, deployment might fail on this host")
+		log.Println("[-] Could not determine copied RSA key status, deployment might fail on this host")
 		return "unknown", nil
 	}
 }
