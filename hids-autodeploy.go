@@ -345,6 +345,7 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 		nmap.WithTargets(ip),
 		nmap.WithContext(ctx),
 		nmap.WithPorts(port),
+		nmap.WithSkipHostDiscovery(),
 		nmap.WithScripts(datadir+"/sbin/nmap/nse/ssh-copy-id"),
 		nmap.WithScriptArguments(
 			map[string]string{
