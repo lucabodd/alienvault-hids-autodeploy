@@ -304,8 +304,8 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 			}),
 	)
 	result, warnings, err := scanner.Run()
-	check(err)
 	fmt.Println(result)
+	check(err)
 	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
 		if warnings != nil {
 			fmt.Printf("[!] \n %v", warnings)
