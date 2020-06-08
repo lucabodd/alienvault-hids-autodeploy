@@ -308,7 +308,7 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 	fmt.Println(result)
 	time.Sleep(12000 * time.Millisecond)
 	check(err)
-	if val, ok := result.Hosts[0].Ports[0].Scripts; ok {
+	if val, ok := result.Hosts[0].Ports[0]; ok {
 		if warnings != nil {
 			fmt.Printf("[!] \n %v", warnings)
 			return "", errors.New("Error occurred in sshRunUname, please refer to warning")
