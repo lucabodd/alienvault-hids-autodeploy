@@ -305,8 +305,6 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 			}),
 	)
 	result, warnings, err := scanner.Run()
-	fmt.Println(result)
-	time.Sleep(12000 * time.Millisecond)
 	check(err)
 	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
 		if warnings != nil {
@@ -356,8 +354,6 @@ func sshCopyId(ip string, port string, ssh_username string, ssh_password string,
 			}),
 	)
 	result, warnings, err := scanner.Run()
-	fmt.Println(result)
-	time.Sleep(12000 * time.Millisecond)
 	check(err)
 
 	if len(result.Hosts[0].Ports[0].Scripts) > 0 {
