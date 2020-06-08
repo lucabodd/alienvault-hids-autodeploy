@@ -295,6 +295,7 @@ func sshRunUname(ip string, port string, ssh_username string, ssh_password strin
 		nmap.WithTargets(ip),
 		nmap.WithContext(ctx),
 		nmap.WithPorts(port),
+		WithSkipHostDiscovery(),
 		nmap.WithScripts(datadir+"/sbin/nmap/nse/ssh-run-uname"),
 		nmap.WithScriptArguments(
 			map[string]string{
